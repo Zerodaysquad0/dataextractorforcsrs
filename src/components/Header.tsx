@@ -16,6 +16,9 @@ export const Header = () => {
       <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
         Extract and analyze Corporate Social Responsibility content from PDFs and websites with AI-powered insights
       </p>
+      <div className="mt-4 text-sm text-slate-500 font-medium">
+        Created by <span className="text-blue-600 font-semibold">Rahul Sah</span>
+      </div>
       <div className="mt-6 flex items-center justify-center gap-2">
         <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
         <div className="h-1 w-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
