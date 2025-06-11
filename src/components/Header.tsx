@@ -10,11 +10,11 @@ export const Header = () => {
           <Sparkles className="w-6 h-6 text-amber-400 absolute -top-1 -right-1 animate-pulse" />
         </div>
         <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-          CSR Extractor
+          Data Extractor
         </h1>
       </div>
       <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-        Extract and analyze Corporate Social Responsibility content from PDFs and websites with AI-powered insights
+        Extract and analyze data content from PDFs and websites with AI-powered insights
       </p>
       <div className="mt-4 text-sm text-slate-500 font-medium">
         Created by <span className="text-blue-600 font-semibold">Rahul Sah</span>
