@@ -8,6 +8,9 @@ import { TopicInput } from '@/components/TopicInput';
 import { ExtractButton } from '@/components/ExtractButton';
 import { ResultsArea } from '@/components/ResultsArea';
 import { StatusIndicator } from '@/components/StatusIndicator';
+import { ProgressIndicator } from '@/components/ProgressIndicator';
+import { performExtraction } from '@/services/extractionService';
+import { useToast } from '@/hooks/use-toast';
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
 
@@ -18,43 +21,96 @@ const Index = () => {
   const [topic, setTopic] = useState('');
   const [results, setResults] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState('Ready to extract CSR content');
+  const [status, setStatus] = useState('Ready to extract data content');
+  const [progress, setProgress] = useState(0);
+  const { toast } = useToast();
 
   const handleExtract = async () => {
     if (!topic.trim()) {
       setStatus('Please enter a topic');
+      toast({
+        title: "Missing topic",
+        description: "Please enter a topic to extract content about",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const urlList = urls.split('\n').filter(url => url.trim());
+    
+    if (sourceType === 'PDF' && selectedFiles.length === 0) {
+      setStatus('Please select PDF files');
+      toast({
+        title: "No files selected",
+        description: "Please select at least one PDF file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (sourceType === 'Website' && urlList.length === 0) {
+      setStatus('Please enter website URLs');
+      toast({
+        title: "No URLs entered",
+        description: "Please enter at least one website URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (sourceType === 'Both' && selectedFiles.length === 0 && urlList.length === 0) {
+      setStatus('Please select files or enter URLs');
+      toast({
+        title: "No sources provided",
+        description: "Please select PDF files or enter website URLs",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoading(true);
-    setStatus('Extracting content from sources...');
-    
-    // Simulate API call - replace with actual implementation
-    setTimeout(() => {
-      const mockResults = `Source Analysis for Topic: ${topic}
+    setResults('');
+    setProgress(0);
 
---- FILE: example.pdf ---
-Corporate Social Responsibility Overview: This document outlines comprehensive CSR initiatives including environmental sustainability programs, community engagement activities, and ethical business practices. The company has implemented carbon-neutral operations and supports local education programs.
+    try {
+      const result = await performExtraction({
+        sourceType,
+        files: selectedFiles,
+        urls: urlList,
+        topic,
+        onProgress: (prog, stat) => {
+          setProgress(prog);
+          setStatus(stat);
+        }
+      });
 
-Key insights:
-- 40% reduction in carbon emissions over 5 years
-- $2M invested in community development programs
-- 100% renewable energy usage in all facilities
-- Partnership with 15 local educational institutions
-
---- WEBSITE: https://example.com/csr ---
-CSR Implementation Strategy: The organization demonstrates commitment to sustainable business practices through various environmental and social initiatives. Focus areas include climate action, diversity and inclusion, and responsible supply chain management.
-
-Key insights:
-- Zero-waste manufacturing processes implemented
-- 50% increase in diverse supplier partnerships
-- Employee volunteer program with 95% participation
-- Transparent sustainability reporting published quarterly`;
-
-      setResults(mockResults);
-      setStatus('✅ Extraction complete');
+      if (result.success) {
+        setResults(result.content);
+        setStatus('✅ Extraction complete');
+        toast({
+          title: "Extraction successful",
+          description: "Content has been extracted and analyzed",
+        });
+      } else {
+        setStatus(`❌ ${result.error}`);
+        toast({
+          title: "Extraction failed",
+          description: result.error || "An error occurred during extraction",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Extraction error:', error);
+      setStatus('❌ Extraction failed');
+      toast({
+        title: "Unexpected error",
+        description: "An unexpected error occurred during extraction",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 3000);
+      setProgress(0);
+    }
   };
 
   return (
@@ -92,10 +148,19 @@ Key insights:
               isLoading={isLoading}
             />
             
-            <StatusIndicator 
-              status={status}
-              isLoading={isLoading}
-            />
+            {isLoading && (
+              <ProgressIndicator 
+                progress={progress}
+                status={status}
+              />
+            )}
+            
+            {!isLoading && (
+              <StatusIndicator 
+                status={status}
+                isLoading={isLoading}
+              />
+            )}
           </div>
           
           {/* Right Panel - Results */}

@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { FileDown, Copy, CheckCircle, Loader2 } from 'lucide-react';
+import { FileDown, Copy, CheckCircle, Loader2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { downloadAsText, downloadAsPDF } from '@/utils/downloadUtils';
 
 interface ResultsAreaProps {
   results: string;
@@ -33,20 +34,19 @@ export const ResultsArea = ({ results, isLoading }: ResultsAreaProps) => {
     }
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([results], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'csr-extraction-results.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
+  const handleDownloadText = () => {
+    downloadAsText(results, 'data-extraction-results.txt');
     toast({
       title: "Download started",
-      description: "Your results are being downloaded",
+      description: "Your results are being downloaded as a text file",
+    });
+  };
+
+  const handleDownloadPDF = () => {
+    downloadAsPDF(results, 'data-extraction-results.pdf');
+    toast({
+      title: "Download started",
+      description: "Your results are being downloaded as a PDF file",
     });
   };
 
@@ -65,14 +65,25 @@ export const ResultsArea = ({ results, isLoading }: ResultsAreaProps) => {
               size="sm"
               onClick={handleCopy}
               className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              title="Copy to clipboard"
             >
               {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleDownload}
+              onClick={handleDownloadText}
               className="hover:bg-green-50 hover:border-green-300 transition-colors"
+              title="Download as text file"
+            >
+              <FileText className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPDF}
+              className="hover:bg-purple-50 hover:border-purple-300 transition-colors"
+              title="Download as PDF"
             >
               <FileDown className="w-4 h-4" />
             </Button>
@@ -85,11 +96,11 @@ export const ResultsArea = ({ results, isLoading }: ResultsAreaProps) => {
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <Loader2 className="w-12 h-12 animate-spin mb-4" />
             <p className="text-lg font-medium">Processing your sources...</p>
-            <p className="text-sm">This may take a few moments</p>
+            <p className="text-sm">Extracting and analyzing content with AI</p>
           </div>
         ) : (
           <Textarea
-            value={results || 'Results will appear here after extraction...'}
+            value={results || 'Results will appear here after extraction...\n\nThe AI will analyze your PDFs and websites to extract relevant information about your specified topic.'}
             readOnly
             className="h-full resize-none bg-slate-900 text-green-400 font-mono text-sm border-slate-700 focus:border-slate-600 focus:ring-slate-600/20"
             placeholder="Results will appear here after extraction..."
