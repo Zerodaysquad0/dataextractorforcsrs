@@ -132,7 +132,7 @@ export const downloadAsWord = async (
     }
   });
 
-  // Create the document first so we can use it for Media.addImage
+  // Create the document before embedding images, as required by docx's Media.addImage API
   const doc = new Document({ sections: [{ children: [] }] });
 
   // Insert images in the DOCX
@@ -146,26 +146,37 @@ export const downloadAsWord = async (
     );
     for (let imgUrl of images) {
       try {
-        // Fetch the image as a blob and insert
         const res = await fetch(imgUrl);
         const imgBlob = await res.blob();
-        // Only support png/jpeg/gif/etc
-        // Read into ArrayBuffer for docx
         const arrayBuffer = await imgBlob.arrayBuffer();
-        const contentType = imgBlob.type || "image/jpeg";
-        const ext = contentType.split("/")[1] || "jpeg";
-        // Use the correct way to add images
-        const image = Media.addImage(doc, arrayBuffer, 350, 200, { extension: ext });
-        children.push(image);
+        // Modern docx expects addImage(doc, arrayBuffer, width, height, options)
+        if (typeof Media?.addImage === "function") {
+          const image = Media.addImage(doc, arrayBuffer, 350, 200);
+          children.push(image);
+        } else {
+          // Fallback: just add the link if addImage not available
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `Image: `, bold: true }),
+                new TextRun({
+                  text: imgUrl,
+                  underline: { type: 'single', color: '0000FF' },
+                  color: "0000FF"
+                })
+              ],
+              spacing: { after: 60 }
+            })
+          );
+        }
       } catch (e) {
-        // If failed to fetch, just add a link.
         children.push(
           new Paragraph({
             children: [
               new TextRun({ text: `Image: `, bold: true }),
               new TextRun({
                 text: imgUrl,
-                underline: { type: 'single', color: '0000FF' }, // Fix underline error
+                underline: { type: 'single', color: '0000FF' },
                 color: "0000FF"
               })
             ],
@@ -178,8 +189,7 @@ export const downloadAsWord = async (
     }
   }
 
-  // Now actually use doc.sections[0].children = children
-  // (This fixes the two-step doc/image init required by docx.)
+  // Attach all children to the doc section.
   (doc as any).Sections[0].Properties.options.children = children;
 
   const blob = await Packer.toBlob(doc);
