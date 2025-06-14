@@ -1,18 +1,18 @@
-
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { FileDown, Copy, CheckCircle, Loader2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { downloadAsText, downloadAsPDF } from '@/utils/downloadUtils';
+import { downloadAsText, downloadAsPDF, downloadAsWord } from '@/utils/downloadUtils';
 
 interface ResultsAreaProps {
   results: string;
   isLoading: boolean;
+  topic?: string; // pass topic/heading for formatting on export
 }
 
-export const ResultsArea = ({ results, isLoading }: ResultsAreaProps) => {
+export const ResultsArea = ({ results, isLoading, topic }: ResultsAreaProps) => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
@@ -43,10 +43,18 @@ export const ResultsArea = ({ results, isLoading }: ResultsAreaProps) => {
   };
 
   const handleDownloadPDF = () => {
-    downloadAsPDF(results, 'data-extraction-results.pdf');
+    downloadAsPDF(results, 'data-extraction-results.pdf', "Extraction Results", topic || "");
     toast({
       title: "Download started",
       description: "Your results are being downloaded as a PDF file",
+    });
+  };
+
+  const handleDownloadWord = () => {
+    downloadAsWord(results, 'data-extraction-results.docx', "Extraction Results", topic || "");
+    toast({
+      title: "Download started",
+      description: "Your results are being downloaded as a Word file",
     });
   };
 
@@ -81,11 +89,20 @@ export const ResultsArea = ({ results, isLoading }: ResultsAreaProps) => {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleDownloadWord}
+              className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              title="Download as Word file"
+            >
+              <FileDown className="w-4 h-4" /> <span className="text-xs">Word</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleDownloadPDF}
               className="hover:bg-purple-50 hover:border-purple-300 transition-colors"
               title="Download as PDF"
             >
-              <FileDown className="w-4 h-4" />
+              <FileDown className="w-4 h-4" /> <span className="text-xs">PDF</span>
             </Button>
           </div>
         )}

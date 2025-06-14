@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
@@ -168,6 +167,7 @@ const Index = () => {
             <ResultsArea 
               results={results}
               isLoading={isLoading}
+              topic={topic}
             />
           </div>
         </div>
