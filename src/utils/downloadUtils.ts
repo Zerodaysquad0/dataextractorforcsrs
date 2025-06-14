@@ -79,7 +79,7 @@ export const downloadAsWord = async (
   mainTopic: string = '',
   images: string[] = []
 ) => {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, Media } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
 
   const children = [];
 
@@ -132,10 +132,10 @@ export const downloadAsWord = async (
     }
   });
 
-  // Create the document before embedding images, as required by docx's Media.addImage API
+  // Create the doc object here (before embedding images)
   const doc = new Document({ sections: [{ children: [] }] });
 
-  // Insert images in the DOCX
+  // Insert images in the DOCX: Try the safest approach, fallback to links if image insertion fails
   if (images?.length) {
     children.push(
       new Paragraph({
@@ -149,12 +149,12 @@ export const downloadAsWord = async (
         const res = await fetch(imgUrl);
         const imgBlob = await res.blob();
         const arrayBuffer = await imgBlob.arrayBuffer();
-        // Modern docx expects addImage(doc, arrayBuffer, width, height, options)
-        if (typeof Media?.addImage === "function") {
-          const image = Media.addImage(doc, arrayBuffer, 350, 200);
+        // Try to use doc.createImage correctly
+        if (typeof (doc as any).createImage === 'function') {
+          const image = (doc as any).createImage(arrayBuffer, 350, 200);
           children.push(image);
         } else {
-          // Fallback: just add the link if addImage not available
+          // Fallback: just add the link if no createImage
           children.push(
             new Paragraph({
               children: [
