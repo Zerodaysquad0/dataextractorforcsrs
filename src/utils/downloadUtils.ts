@@ -114,7 +114,7 @@ export const downloadAsWord = async (
   mainTopic: string = '',
   images: string[] = []
 ) => {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, Hyperlink } = await import('docx');
 
   const children = [];
 
@@ -180,17 +180,17 @@ export const downloadAsWord = async (
     );
     images.forEach((imgUrl, idx) => {
       const isWorking = imageStatusArr[idx];
+      // Use Hyperlink to create a real hyperlink for "[open image link]"
+      // To use Hyperlink, we need to use the document itself, so the 2nd parameter for the link will be doc below
+      // We'll add placeholder for doc here, and fix it after instantiating doc
       children.push(
         new Paragraph({
           children: [
             new TextRun({ text: `Image ${idx + 1}: `, bold: true }),
-            new TextRun({
-              text: "[open image link]",
-              underline: { type: 'single', color: '0000FF' },
-              color: "0000FF",
-              style: "Hyperlink",
-              hyperlink: imgUrl,
-            }),
+            // Hyperlink will be linked to doc later
+            // We'll add the hyperlink as a placeholder and update after creating the doc
+            // @ts-ignore
+            { __hyperlink__: imgUrl },
             new TextRun({
               text: ` | URL: ${imgUrl.slice(0, 60)}${imgUrl.length > 60 ? "..." : ""}`,
               color: "555555",
@@ -203,8 +203,26 @@ export const downloadAsWord = async (
     });
   }
 
-  // Create the doc object and attach content
-  const doc = new Document({ sections: [{ children }] });
+  // Create doc object and replace hyperlink placeholders with actual Hyperlink instances
+  const doc = new Document({ sections: [{ children: [] }] });
+  const actualChildren = children.map(paragraph => {
+    if (!(paragraph instanceof Paragraph)) return paragraph;
+    // Look for __hyperlink__ in children
+    const realChildren = paragraph['options']?.children?.map((c: any) => {
+      if (c && c.__hyperlink__) {
+        return new Hyperlink(doc, new TextRun({
+          text: "[open image link]",
+          style: "Hyperlink"
+        }), c.__hyperlink__);
+      }
+      return c;
+    }) || paragraph['options']?.children || [];
+    if (realChildren.length) {
+      return new Paragraph({ ...paragraph['options'], children: realChildren });
+    }
+    return paragraph;
+  });
+  doc.Sections[0].children = actualChildren;
 
   const blob = await Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
