@@ -1,6 +1,17 @@
 import { TOGETHER_API_CONFIG } from '@/config/api';
 import * as pdfjsLib from 'pdfjs-dist';
-import 'pdfjs-dist/build/pdf.worker.entry';
+
+// Configure pdf.js worker for Vite+ESM compatibility.
+if (
+  typeof window !== "undefined" &&
+  pdfjsLib.GlobalWorkerOptions &&
+  // @ts-ignore (property exists on dist builds)
+  !pdfjsLib.GlobalWorkerOptions.workerSrc
+) {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version || '3.11.174'}/build/pdf.worker.min.js`;
+}
 
 export const extractTextFromPDF = async (file: File): Promise<string> => {
   try {

@@ -1,4 +1,5 @@
-import { saveAs } from 'file-saver';
+
+// Remove file-saver import! Not needed with Blob/URL/anchor.
 
 export const downloadAsText = (content: string, filename: string = 'data-extraction-results.txt') => {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -125,3 +126,4 @@ export const downloadAsWord = async (
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
