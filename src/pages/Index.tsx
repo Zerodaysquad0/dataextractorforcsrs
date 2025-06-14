@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
@@ -11,9 +10,6 @@ import { StatusIndicator } from '@/components/StatusIndicator';
 import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { performExtraction } from '@/services/extractionService';
 import { useToast } from '@/hooks/use-toast';
-import { SourceHistoryProvider, useSourceHistory } from '@/context/SourceHistoryContext';
-import { SourceHistorySidebar } from '@/components/SourceHistorySidebar';
-import { Clock } from 'lucide-react';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from '@/components/ui/button';
 
@@ -21,10 +17,6 @@ export type SourceType = 'PDF' | 'Website' | 'Both';
 
 // Helper for app main content to avoid duplication
 const MainAppContent = ({
-  showHistory,
-  setShowHistory,
-  handlePickURL,
-  handlePickFile,
   sourceType,
   setSourceType,
   selectedFiles,
@@ -47,20 +39,7 @@ const MainAppContent = ({
 }) => (
   <SidebarProvider>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 w-full">
-      <Button
-        className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-        onClick={() => setShowHistory(v => !v)}
-        size="sm"
-      >
-        <Clock className="w-4 h-4 mr-2" />
-        History
-      </Button>
-      <SourceHistorySidebar
-        open={showHistory}
-        onClose={() => setShowHistory(false)}
-        onSelectURL={handlePickURL}
-        onSelectFile={handlePickFile}
-      />
+      {/* Removed History button and sidebar */}
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <Header />
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
@@ -128,17 +107,7 @@ const MainIndex = () => {
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const [showHistory, setShowHistory] = useState(false);
-  
-  // Safely use the hook with proper error handling
-  let addSource: (src: any) => void = () => {};
-  try {
-    const { addSource: hookAddSource } = useSourceHistory();
-    addSource = hookAddSource;
-  } catch (error) {
-    // If hook is used outside provider, use fallback
-    console.log('Source history not available');
-  }
+  // Removed useSourceHistory, showHistory, setShowHistory and history methods
 
   const handleExtract = async () => {
     if (!topic.trim()) {
@@ -183,30 +152,8 @@ const MainIndex = () => {
       return;
     }
 
-    // Save source history
-    if (sourceType === "PDF" || sourceType === "Both") {
-      selectedFiles.forEach((file) => {
-        addSource({
-          id: `PDF:${file.name}`,
-          type: "PDF",
-          label: file.name,
-          file: { name: file.name },
-          created: Date.now(),
-        });
-      });
-    }
-    if ((sourceType === "Website" || sourceType === "Both") && urlList.length > 0) {
-      urlList.forEach((url) => {
-        addSource({
-          id: `Website:${url}`,
-          type: "Website",
-          label: url,
-          url,
-          created: Date.now(),
-        });
-      });
-    }
-    
+    // REMOVED Source history storage logic
+
     setIsLoading(true);
     setResults('');
     setProgress(0);
@@ -261,25 +208,10 @@ const MainIndex = () => {
     }
   };
 
-  const handlePickURL = (url: string) => {
-    setUrls((prev) => prev.includes(url) ? prev : (prev ? prev + '\n' : '') + url);
-    setSourceType("Website");
-  };
-  
-  const handlePickFile = (fileMeta: { name: string }) => {
-    toast({
-      title: "PDF re-upload required",
-      description: `Due to browser security, please select the file "${fileMeta.name}" again.`,
-      variant: "default",
-      duration: 5000,
-    });
-    setSourceType("PDF");
-  };
+  // No handlePickURL or handlePickFile
 
   // This object will be shared with MainAppContent
   const shared = {
-    showHistory, setShowHistory,
-    handlePickURL, handlePickFile,
     sourceType, setSourceType,
     selectedFiles, setSelectedFiles,
     urls, setUrls,
@@ -295,11 +227,10 @@ const MainIndex = () => {
   return <MainAppContent {...shared} />;
 };
 
+// Remove SourceHistoryProvider wrapper
 const Index = () => {
   return (
-    <SourceHistoryProvider>
-      <MainIndex />
-    </SourceHistoryProvider>
+    <MainIndex />
   );
 };
 
