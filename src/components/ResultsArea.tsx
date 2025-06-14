@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { FileDown, Copy, CheckCircle, Loader2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { downloadAsText, downloadAsPDF, downloadAsWord } from '@/utils/downloadUtils';
+import { downloadAsText } from '@/utils/downloadText';
+import { downloadAsPDF } from '@/utils/downloadPDF';
+import { downloadAsWord } from '@/utils/downloadWord';
 
 interface ResultsAreaProps {
   results: string;
@@ -155,4 +157,3 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
     </Card>
   );
 };
-
