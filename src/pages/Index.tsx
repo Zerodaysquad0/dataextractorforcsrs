@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
@@ -10,10 +11,13 @@ import { StatusIndicator } from '@/components/StatusIndicator';
 import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { performExtraction } from '@/services/extractionService';
 import { useToast } from '@/hooks/use-toast';
+import { SourceHistoryProvider, useSourceHistory } from '@/context/SourceHistoryContext';
+import { SourceHistorySidebar } from '@/components/SourceHistorySidebar';
+import { Clock } from 'lucide-react';
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
 
-const Index = () => {
+const MainIndex = () => {
   const [sourceType, setSourceType] = useState<SourceType>('Both');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [urls, setUrls] = useState('');
@@ -24,6 +28,10 @@ const Index = () => {
   const [progress, setProgress] = useState(0);
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
+
+  // Source history sidebar control
+  const [showHistory, setShowHistory] = useState(false);
+  const { addSource } = useSourceHistory();
 
   const handleExtract = async () => {
     if (!topic.trim()) {
@@ -37,7 +45,7 @@ const Index = () => {
     }
 
     const urlList = urls.split('\n').filter(url => url.trim());
-    
+
     if (sourceType === 'PDF' && selectedFiles.length === 0) {
       setStatus('Please select PDF files');
       toast({
@@ -68,6 +76,29 @@ const Index = () => {
       return;
     }
 
+    // Save source history:
+    if (sourceType === "PDF" || sourceType === "Both") {
+      selectedFiles.forEach((file) => {
+        addSource({
+          id: `PDF:${file.name}`,
+          type: "PDF",
+          label: file.name,
+          file: { name: file.name },
+          created: Date.now(),
+        });
+      });
+    }
+    if ((sourceType === "Website" || sourceType === "Both") && urlList.length > 0) {
+      urlList.forEach((url) => {
+        addSource({
+          id: `Website:${url}`,
+          type: "Website",
+          label: url,
+          url,
+          created: Date.now(),
+        });
+      });
+    }
     setIsLoading(true);
     setResults('');
     setProgress(0);
@@ -123,59 +154,80 @@ const Index = () => {
     }
   };
 
+  // When user clicks history source entry, allow to autofill file/url input:
+  const handlePickURL = (url: string) => {
+    setUrls((prev) => prev.includes(url) ? prev : (prev ? prev + '\n' : '') + url);
+    setSourceType("Website");
+  };
+  const handlePickFile = (fileMeta: { name: string }) => {
+    // User must re-upload file for security. Show a toast instead.
+    toast({
+      title: "PDF re-upload required",
+      description: `Due to browser security, please select the file "${fileMeta.name}" again.`,
+      variant: "default",
+      duration: 5000,
+    });
+    setSourceType("PDF");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <button
+        className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded shadow-xl flex items-center gap-2"
+        onClick={() => setShowHistory(v => !v)}
+        title="Show Source History"
+      >
+        <Clock className="w-5 h-5" /> Source History
+      </button>
+      <SourceHistorySidebar
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        onSelectURL={handlePickURL}
+        onSelectFile={handlePickFile}
+      />
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <Header />
-        
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
           {/* Left Panel - Input Controls */}
           <div className="space-y-6">
-            <SourceSelector 
+            <SourceSelector
               sourceType={sourceType}
               setSourceType={setSourceType}
             />
-            
-            <FileUploader 
+            <FileUploader
               selectedFiles={selectedFiles}
               setSelectedFiles={setSelectedFiles}
               disabled={sourceType === 'Website'}
             />
-            
-            <UrlInput 
+            <UrlInput
               urls={urls}
               setUrls={setUrls}
               disabled={sourceType === 'PDF'}
             />
-            
-            <TopicInput 
+            <TopicInput
               topic={topic}
               setTopic={setTopic}
             />
-            
-            <ExtractButton 
+            <ExtractButton
               onClick={handleExtract}
               isLoading={isLoading}
             />
-            
             {isLoading && (
-              <ProgressIndicator 
+              <ProgressIndicator
                 progress={progress}
                 status={status}
               />
             )}
-            
             {!isLoading && (
-              <StatusIndicator 
+              <StatusIndicator
                 status={status}
                 isLoading={isLoading}
               />
             )}
           </div>
-          
           {/* Right Panel - Results */}
           <div className="xl:sticky xl:top-8 xl:h-fit">
-            <ResultsArea 
+            <ResultsArea
               results={results}
               isLoading={isLoading}
               topic={topic}
@@ -187,5 +239,11 @@ const Index = () => {
     </div>
   );
 };
+
+const Index = () => (
+  <SourceHistoryProvider>
+    <MainIndex />
+  </SourceHistoryProvider>
+);
 
 export default Index;
