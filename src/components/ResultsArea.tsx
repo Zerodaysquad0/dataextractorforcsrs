@@ -1,13 +1,13 @@
-
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { FileDown, Copy, CheckCircle, Loader2, FileText } from 'lucide-react';
+import { FileDown, Copy, CheckCircle, Loader2, FileText, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { downloadAsText } from '@/utils/downloadText';
 import { downloadAsPDF } from '@/utils/downloadPDF';
 import { downloadAsWord } from '@/utils/downloadWord';
+import { EmailShareDialog } from './EmailShareDialog';
 
 interface ResultsAreaProps {
   results: string;
@@ -18,6 +18,7 @@ interface ResultsAreaProps {
 
 export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsAreaProps) => {
   const [copied, setCopied] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { toast } = useToast();
 
   const handleCopy = async () => {
@@ -107,6 +108,15 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
             >
               <FileDown className="w-4 h-4" /> <span className="text-xs">PDF</span>
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEmailDialog(true)}
+              className="hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
+              title="Share via Email"
+            >
+              <Mail className="w-4 h-4" /> <span className="text-xs">Email</span>
+            </Button>
           </div>
         )}
       </div>
@@ -151,6 +161,13 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
                 </div>
               </div>
             ) : null}
+            <EmailShareDialog
+              open={showEmailDialog}
+              onOpenChange={setShowEmailDialog}
+              results={results}
+              topic={topic}
+              images={images}
+            />
           </>
         )}
       </div>
