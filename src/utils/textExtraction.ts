@@ -29,13 +29,48 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
   }
 };
 
-export const extractTextFromWebsite = async (url: string): Promise<string> => {
+export interface WebsiteExtractionResult {
+  text: string;
+  images: string[];
+}
+
+export const extractTextFromWebsite = async (url: string): Promise<WebsiteExtractionResult> => {
   try {
-    // Note: Due to CORS restrictions, this would typically need to be done on the backend
-    // For demonstration, we'll simulate the extraction
-    return `[Website Content from ${url}] - This is simulated website text content. In production, this would scrape actual content from the website.`;
+    // Note: Due to CORS restrictions, this would typically need to be done on the backend.
+    // For demonstration, we simulate the extraction if not running on localhost.
+    if (window.location.hostname !== "localhost") {
+      return {
+        text: `[Website Content from ${url}] - This is simulated website text content. In production, this would scrape actual content from the website.`,
+        images: [],
+      };
+    }
+
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+    const html = await res.text();
+    // Extract text from <p> tags
+    const pMatches = [...html.matchAll(/<p[^>]*>(.*?)<\/p>/gi)];
+    const text = pMatches.map(m => m[1].replace(/<[^>]+>/g, ' ').trim()).join('\n\n');
+
+    // Extract <img src=...> images and convert any relative URL to absolute:
+    const imgMatches = [...html.matchAll(/<img [^>]*src=["']([^"']+)["'][^>]*>/gi)];
+    const images = imgMatches.map(match => {
+      let src = match[1];
+      try {
+        // Convert relative URLs to absolute
+        if (!/^https?:\/\//.test(src)) {
+          const base = new URL(url);
+          src = new URL(src, base).href;
+        }
+      } catch {}
+      return src;
+    });
+
+    return { text, images };
   } catch (error) {
-    return `[Error fetching ${url}]: ${error}`;
+    return {
+      text: `[Error fetching ${url}]: ${error}`,
+      images: [],
+    };
   }
 };
 

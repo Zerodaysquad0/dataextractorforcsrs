@@ -22,6 +22,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('Ready to extract data content');
   const [progress, setProgress] = useState(0);
+  const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
 
   const handleExtract = async () => {
@@ -70,6 +71,7 @@ const Index = () => {
     setIsLoading(true);
     setResults('');
     setProgress(0);
+    setImages([]);
 
     try {
       const result = await performExtraction({
@@ -86,6 +88,7 @@ const Index = () => {
       if (result.success) {
         setResults(result.content);
         setStatus('✅ Extraction complete');
+        setImages(result.images || []);
         toast({
           title: "Extraction successful",
           description: "Content has been extracted and analyzed",
@@ -168,6 +171,7 @@ const Index = () => {
               results={results}
               isLoading={isLoading}
               topic={topic}
+              images={images}
             />
           </div>
         </div>

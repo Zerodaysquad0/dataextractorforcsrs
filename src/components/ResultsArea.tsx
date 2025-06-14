@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,10 +10,11 @@ import { downloadAsText, downloadAsPDF, downloadAsWord } from '@/utils/downloadU
 interface ResultsAreaProps {
   results: string;
   isLoading: boolean;
-  topic?: string; // pass topic/heading for formatting on export
+  topic?: string;
+  images?: string[]; // New prop to support image URLs
 }
 
-export const ResultsArea = ({ results, isLoading, topic }: ResultsAreaProps) => {
+export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsAreaProps) => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
@@ -43,7 +45,7 @@ export const ResultsArea = ({ results, isLoading, topic }: ResultsAreaProps) => 
   };
 
   const handleDownloadPDF = () => {
-    downloadAsPDF(results, 'data-extraction-results.pdf', "Extraction Results", topic || "");
+    downloadAsPDF(results, 'data-extraction-results.pdf', "Extraction Results", topic || "", images);
     toast({
       title: "Download started",
       description: "Your results are being downloaded as a PDF file",
@@ -51,7 +53,7 @@ export const ResultsArea = ({ results, isLoading, topic }: ResultsAreaProps) => 
   };
 
   const handleDownloadWord = () => {
-    downloadAsWord(results, 'data-extraction-results.docx', "Extraction Results", topic || "");
+    downloadAsWord(results, 'data-extraction-results.docx', "Extraction Results", topic || "", images);
     toast({
       title: "Download started",
       description: "Your results are being downloaded as a Word file",
@@ -65,7 +67,6 @@ export const ResultsArea = ({ results, isLoading, topic }: ResultsAreaProps) => 
           <FileDown className="w-5 h-5 text-blue-600" />
           Extraction Results
         </h3>
-        
         {results && !isLoading && (
           <div className="flex gap-2">
             <Button
@@ -107,8 +108,7 @@ export const ResultsArea = ({ results, isLoading, topic }: ResultsAreaProps) => 
           </div>
         )}
       </div>
-      
-      <div className="relative h-[600px]">
+      <div className="relative h-[600px] overflow-y-auto pb-4">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <Loader2 className="w-12 h-12 animate-spin mb-4" />
@@ -116,12 +116,30 @@ export const ResultsArea = ({ results, isLoading, topic }: ResultsAreaProps) => 
             <p className="text-sm">Extracting and analyzing content with AI</p>
           </div>
         ) : (
-          <Textarea
-            value={results || 'Results will appear here after extraction...\n\nThe AI will analyze your PDFs and websites to extract relevant information about your specified topic.'}
-            readOnly
-            className="h-full resize-none bg-slate-900 text-green-400 font-mono text-sm border-slate-700 focus:border-slate-600 focus:ring-slate-600/20"
-            placeholder="Results will appear here after extraction..."
-          />
+          <>
+            <Textarea
+              value={results || 'Results will appear here after extraction...\n\nThe AI will analyze your PDFs and websites to extract relevant information about your specified topic.'}
+              readOnly
+              className="h-full resize-none bg-slate-900 text-green-400 font-mono text-sm border-slate-700 focus:border-slate-600 focus:ring-slate-600/20"
+              placeholder="Results will appear here after extraction..."
+            />
+            {images?.length ? (
+              <div className="mt-4">
+                <h4 className="text-base font-semibold mb-2 text-slate-800">Extracted Images</h4>
+                <div className="flex flex-wrap gap-3">
+                  {images.map((img, i) => (
+                    <img
+                      src={img}
+                      key={img + i}
+                      alt={`Extracted ${i + 1}`}
+                      className="max-h-40 max-w-xs object-contain border rounded shadow"
+                      loading="lazy"
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </Card>

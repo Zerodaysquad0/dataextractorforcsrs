@@ -1,6 +1,4 @@
 
-// Remove file-saver import! Not needed with Blob/URL/anchor.
-
 export const downloadAsText = (content: string, filename: string = 'data-extraction-results.txt') => {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -17,10 +15,10 @@ export const downloadAsPDF = async (
   content: string, 
   filename: string = 'data-extraction-results.pdf',
   heading: string = 'Extraction Results',
-  mainTopic: string = ''
+  mainTopic: string = '',
+  images: string[] = []
 ) => {
   const { jsPDF } = await import('jspdf');
-
   const doc = new jsPDF();
   doc.setFontSize(22);
   doc.text(heading, 14, 20);
@@ -53,6 +51,25 @@ export const downloadAsPDF = async (
     if (y > 280) { doc.addPage(); y = 20; }
   });
 
+  // Images: Because jsPDF cannot reliably embed remote images due to CORS, we instead list the image URLs.
+  if (images?.length) {
+    if (y > 240) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text("Extracted Images", 14, y);
+    y += 10;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(10);
+    images.forEach((imgUrl, idx) => {
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.text(`Image ${idx + 1}: ${imgUrl}`, 14, y, { maxWidth: 180 });
+      y += 8;
+    });
+  }
+
   doc.save(filename);
 };
 
@@ -60,9 +77,10 @@ export const downloadAsWord = async (
   content: string,
   filename: string = 'data-extraction-results.docx',
   heading: string = 'Extraction Results',
-  mainTopic: string = ''
+  mainTopic: string = '',
+  images: string[] = []
 ) => {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, Media } = await import('docx');
 
   const children = [];
 
@@ -115,6 +133,44 @@ export const downloadAsWord = async (
     }
   });
 
+  // Insert images in the DOCX
+  if (images?.length) {
+    children.push(
+      new Paragraph({
+        text: "Extracted Images",
+        heading: HeadingLevel.HEADING_2,
+        spacing: { after: 150 }
+      })
+    );
+    for (let imgUrl of images) {
+      try {
+        // Fetch the image as a blob and insert
+        const res = await fetch(imgUrl);
+        const imgBlob = await res.blob();
+        // Only support png/jpeg/gif/etc
+        // Read into ArrayBuffer for docx
+        const arrayBuffer = await imgBlob.arrayBuffer();
+        const contentType = imgBlob.type || "image/jpeg";
+        const ext = contentType.split("/")[1] || "jpeg";
+        const img = Media.addImage(undefined, arrayBuffer, 350, 200, { extension: ext });
+        children.push(img);
+      } catch (e) {
+        // If failed to fetch, just add a link.
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Image: `, bold: true }),
+              new TextRun({ text: imgUrl, underline: true, color: "0000FF" })
+            ],
+            spacing: { after: 60 }
+          })
+        );
+      }
+      // Small space after each img/link
+      children.push(new Paragraph({ text: "", spacing: { after: 40 } }));
+    }
+  }
+
   const doc = new Document({ sections: [{ children }] });
   const blob = await Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
@@ -126,4 +182,3 @@ export const downloadAsWord = async (
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
-
