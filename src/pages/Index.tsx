@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
@@ -12,7 +11,7 @@ import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { performExtraction } from '@/services/extractionService';
 import { useToast } from '@/hooks/use-toast';
 import { SourceHistoryProvider, useSourceHistory } from '@/context/SourceHistoryContext';
-import { SourceHistorySidebar } from '@/components/SourceHistorySidebar';
+import { SourceHistorySidebarWithProvider } from '@/components/SourceHistorySidebarWithProvider';
 import { Clock } from 'lucide-react';
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
@@ -179,7 +178,7 @@ const MainIndex = () => {
       >
         <Clock className="w-5 h-5" /> Source History
       </button>
-      <SourceHistorySidebar
+      <SourceHistorySidebarWithProvider
         open={showHistory}
         onClose={() => setShowHistory(false)}
         onSelectURL={handlePickURL}
