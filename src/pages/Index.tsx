@@ -86,9 +86,17 @@ const Index = () => {
       });
 
       if (result.success) {
-        setResults(result.content);
-        setStatus('✅ Extraction complete');
+        let resultsText = result.content;
         setImages(result.images || []);
+        if (result.images && result.images.length > 0) {
+          // Append download links for each image to the results text:
+          resultsText += `\n\nExtracted Images:\n`;
+          result.images.forEach((imgUrl, idx) => {
+            resultsText += `Image ${idx + 1}: ${imgUrl}\n`;
+          });
+        }
+        setResults(resultsText);
+        setStatus('✅ Extraction complete');
         toast({
           title: "Extraction successful",
           description: "Content has been extracted and analyzed",
