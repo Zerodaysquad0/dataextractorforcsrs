@@ -1,4 +1,3 @@
-
 export const downloadAsText = (content: string, filename: string = 'data-extraction-results.txt') => {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -133,6 +132,9 @@ export const downloadAsWord = async (
     }
   });
 
+  // Create the document first so we can use it for Media.addImage
+  const doc = new Document({ sections: [{ children: [] }] });
+
   // Insert images in the DOCX
   if (images?.length) {
     children.push(
@@ -152,15 +154,20 @@ export const downloadAsWord = async (
         const arrayBuffer = await imgBlob.arrayBuffer();
         const contentType = imgBlob.type || "image/jpeg";
         const ext = contentType.split("/")[1] || "jpeg";
-        const img = Media.addImage(undefined, arrayBuffer, 350, 200, { extension: ext });
-        children.push(img);
+        // Use the correct way to add images
+        const image = Media.addImage(doc, arrayBuffer, 350, 200, { extension: ext });
+        children.push(image);
       } catch (e) {
         // If failed to fetch, just add a link.
         children.push(
           new Paragraph({
             children: [
               new TextRun({ text: `Image: `, bold: true }),
-              new TextRun({ text: imgUrl, underline: true, color: "0000FF" })
+              new TextRun({
+                text: imgUrl,
+                underline: { type: 'single', color: '0000FF' }, // Fix underline error
+                color: "0000FF"
+              })
             ],
             spacing: { after: 60 }
           })
@@ -171,7 +178,10 @@ export const downloadAsWord = async (
     }
   }
 
-  const doc = new Document({ sections: [{ children }] });
+  // Now actually use doc.sections[0].children = children
+  // (This fixes the two-step doc/image init required by docx.)
+  (doc as any).Sections[0].Properties.options.children = children;
+
   const blob = await Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
