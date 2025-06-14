@@ -11,7 +11,7 @@ interface ResultsAreaProps {
   results: string;
   isLoading: boolean;
   topic?: string;
-  images?: string[]; // New prop to support image URLs
+  images?: string[];
 }
 
 export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsAreaProps) => {
@@ -128,13 +128,23 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
                 <h4 className="text-base font-semibold mb-2 text-slate-800">Extracted Images</h4>
                 <div className="flex flex-wrap gap-3">
                   {images.map((img, i) => (
-                    <img
-                      src={img}
-                      key={img + i}
-                      alt={`Extracted ${i + 1}`}
-                      className="max-h-40 max-w-xs object-contain border rounded shadow"
-                      loading="lazy"
-                    />
+                    <div key={img + i} className="flex flex-col items-start max-w-xs">
+                      <img
+                        src={img}
+                        alt={`Extracted ${i + 1}`}
+                        className="max-h-40 max-w-xs object-contain border rounded shadow"
+                        loading="lazy"
+                      />
+                      <a
+                        href={img}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 text-xs break-all text-blue-700 underline hover:text-blue-900"
+                        title="Open or download image"
+                      >
+                        {img}
+                      </a>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -145,3 +155,4 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
     </Card>
   );
 };
+
