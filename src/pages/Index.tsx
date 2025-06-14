@@ -11,8 +11,9 @@ import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { performExtraction } from '@/services/extractionService';
 import { useToast } from '@/hooks/use-toast';
 import { SourceHistoryProvider, useSourceHistory } from '@/context/SourceHistoryContext';
-import { SourceHistorySidebarWithProvider } from '@/components/SourceHistorySidebarWithProvider';
+import { SourceHistorySidebar } from '@/components/SourceHistorySidebar';
 import { Clock } from 'lucide-react';
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
 
@@ -170,72 +171,74 @@ const MainIndex = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <button
-        className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded shadow-xl flex items-center gap-2"
-        onClick={() => setShowHistory(v => !v)}
-        title="Show Source History"
-      >
-        <Clock className="w-5 h-5" /> Source History
-      </button>
-      <SourceHistorySidebarWithProvider
-        open={showHistory}
-        onClose={() => setShowHistory(false)}
-        onSelectURL={handlePickURL}
-        onSelectFile={handlePickFile}
-      />
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Header />
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
-          {/* Left Panel - Input Controls */}
-          <div className="space-y-6">
-            <SourceSelector
-              sourceType={sourceType}
-              setSourceType={setSourceType}
-            />
-            <FileUploader
-              selectedFiles={selectedFiles}
-              setSelectedFiles={setSelectedFiles}
-              disabled={sourceType === 'Website'}
-            />
-            <UrlInput
-              urls={urls}
-              setUrls={setUrls}
-              disabled={sourceType === 'PDF'}
-            />
-            <TopicInput
-              topic={topic}
-              setTopic={setTopic}
-            />
-            <ExtractButton
-              onClick={handleExtract}
-              isLoading={isLoading}
-            />
-            {isLoading && (
-              <ProgressIndicator
-                progress={progress}
-                status={status}
+    <SidebarProvider>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 w-full">
+        <button
+          className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded shadow-xl flex items-center gap-2"
+          onClick={() => setShowHistory(v => !v)}
+          title="Show Source History"
+        >
+          <Clock className="w-5 h-5" /> Source History
+        </button>
+        <SourceHistorySidebar
+          open={showHistory}
+          onClose={() => setShowHistory(false)}
+          onSelectURL={handlePickURL}
+          onSelectFile={handlePickFile}
+        />
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <Header />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+            {/* Left Panel - Input Controls */}
+            <div className="space-y-6">
+              <SourceSelector
+                sourceType={sourceType}
+                setSourceType={setSourceType}
               />
-            )}
-            {!isLoading && (
-              <StatusIndicator
-                status={status}
+              <FileUploader
+                selectedFiles={selectedFiles}
+                setSelectedFiles={setSelectedFiles}
+                disabled={sourceType === 'Website'}
+              />
+              <UrlInput
+                urls={urls}
+                setUrls={setUrls}
+                disabled={sourceType === 'PDF'}
+              />
+              <TopicInput
+                topic={topic}
+                setTopic={setTopic}
+              />
+              <ExtractButton
+                onClick={handleExtract}
                 isLoading={isLoading}
               />
-            )}
-          </div>
-          {/* Right Panel - Results */}
-          <div className="xl:sticky xl:top-8 xl:h-fit">
-            <ResultsArea
-              results={results}
-              isLoading={isLoading}
-              topic={topic}
-              images={images}
-            />
+              {isLoading && (
+                <ProgressIndicator
+                  progress={progress}
+                  status={status}
+                />
+              )}
+              {!isLoading && (
+                <StatusIndicator
+                  status={status}
+                  isLoading={isLoading}
+                />
+              )}
+            </div>
+            {/* Right Panel - Results */}
+            <div className="xl:sticky xl:top-8 xl:h-fit">
+              <ResultsArea
+                results={results}
+                isLoading={isLoading}
+                topic={topic}
+                images={images}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
