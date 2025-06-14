@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
 
-// Helper: User Info Avatar/Menu
 const UserBar: React.FC<{ onLogout: () => void, user: any }> = ({ onLogout, user }) => (
   <div className="fixed top-4 right-4 z-50 flex items-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 gap-3 border border-white/20">
     <img 
@@ -39,6 +38,104 @@ const UserBar: React.FC<{ onLogout: () => void, user: any }> = ({ onLogout, user
   </div>
 );
 
+// Helper for app main content to avoid duplication
+const MainAppContent = ({
+  showHistory,
+  setShowHistory,
+  handlePickURL,
+  handlePickFile,
+  sourceType,
+  setSourceType,
+  selectedFiles,
+  setSelectedFiles,
+  urls,
+  setUrls,
+  topic,
+  setTopic,
+  results,
+  setResults,
+  isLoading,
+  setIsLoading,
+  status,
+  setStatus,
+  progress,
+  setProgress,
+  images,
+  setImages,
+  handleExtract,
+}) => (
+  <SidebarProvider>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 w-full">
+      <Button
+        className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+        onClick={() => setShowHistory(v => !v)}
+        size="sm"
+      >
+        <Clock className="w-4 h-4 mr-2" />
+        History
+      </Button>
+      <SourceHistorySidebar
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        onSelectURL={handlePickURL}
+        onSelectFile={handlePickFile}
+      />
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Header />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+          {/* Left Panel - Input Controls */}
+          <div className="space-y-6">
+            <SourceSelector
+              sourceType={sourceType}
+              setSourceType={setSourceType}
+            />
+            <FileUploader
+              selectedFiles={selectedFiles}
+              setSelectedFiles={setSelectedFiles}
+              disabled={sourceType === 'Website'}
+            />
+            <UrlInput
+              urls={urls}
+              setUrls={setUrls}
+              disabled={sourceType === 'PDF'}
+            />
+            <TopicInput
+              topic={topic}
+              setTopic={setTopic}
+            />
+            <ExtractButton
+              onClick={handleExtract}
+              isLoading={isLoading}
+            />
+            {isLoading && (
+              <ProgressIndicator
+                progress={progress}
+                status={status}
+              />
+            )}
+            {!isLoading && (
+              <StatusIndicator
+                status={status}
+                isLoading={isLoading}
+              />
+            )}
+          </div>
+          {/* Right Panel - Results */}
+          <div className="xl:sticky xl:top-8 xl:h-fit">
+            <ResultsArea
+              results={results}
+              isLoading={isLoading}
+              topic={topic}
+              images={images}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </SidebarProvider>
+);
+
+// Main logic — switch on presence of `user`
 const MainIndex = () => {
   const [sourceType, setSourceType] = useState<SourceType>('Both');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -51,9 +148,8 @@ const MainIndex = () => {
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Source history sidebar control
   const [showHistory, setShowHistory] = useState(false);
-  const { addSource } = useSourceHistory();
+  const { addSource } = useSourceHistory ? useSourceHistory() : { addSource: () => {} }; // fallback for anon
 
   const handleExtract = async () => {
     if (!topic.trim()) {
@@ -98,28 +194,30 @@ const MainIndex = () => {
       return;
     }
 
-    // Save source history
-    if (sourceType === "PDF" || sourceType === "Both") {
-      selectedFiles.forEach((file) => {
-        addSource({
-          id: `PDF:${file.name}`,
-          type: "PDF",
-          label: file.name,
-          file: { name: file.name },
-          created: Date.now(),
+    // Save source history (only if addSource exists)
+    if (addSource) {
+      if (sourceType === "PDF" || sourceType === "Both") {
+        selectedFiles.forEach((file) => {
+          addSource({
+            id: `PDF:${file.name}`,
+            type: "PDF",
+            label: file.name,
+            file: { name: file.name },
+            created: Date.now(),
+          });
         });
-      });
-    }
-    if ((sourceType === "Website" || sourceType === "Both") && urlList.length > 0) {
-      urlList.forEach((url) => {
-        addSource({
-          id: `Website:${url}`,
-          type: "Website",
-          label: url,
-          url,
-          created: Date.now(),
+      }
+      if ((sourceType === "Website" || sourceType === "Both") && urlList.length > 0) {
+        urlList.forEach((url) => {
+          addSource({
+            id: `Website:${url}`,
+            type: "Website",
+            label: url,
+            url,
+            created: Date.now(),
+          });
         });
-      });
+      }
     }
     
     setIsLoading(true);
@@ -191,87 +289,23 @@ const MainIndex = () => {
     setSourceType("PDF");
   };
 
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 w-full">
-        <Button
-          className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-          onClick={() => setShowHistory(v => !v)}
-          size="sm"
-        >
-          <Clock className="w-4 h-4 mr-2" />
-          History
-        </Button>
-        
-        <SourceHistorySidebar
-          open={showHistory}
-          onClose={() => setShowHistory(false)}
-          onSelectURL={handlePickURL}
-          onSelectFile={handlePickFile}
-        />
-        
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <Header />
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
-            {/* Left Panel - Input Controls */}
-            <div className="space-y-6">
-              <SourceSelector
-                sourceType={sourceType}
-                setSourceType={setSourceType}
-              />
-              <FileUploader
-                selectedFiles={selectedFiles}
-                setSelectedFiles={setSelectedFiles}
-                disabled={sourceType === 'Website'}
-              />
-              <UrlInput
-                urls={urls}
-                setUrls={setUrls}
-                disabled={sourceType === 'PDF'}
-              />
-              <TopicInput
-                topic={topic}
-                setTopic={setTopic}
-              />
-              <ExtractButton
-                onClick={handleExtract}
-                isLoading={isLoading}
-              />
-              {isLoading && (
-                <ProgressIndicator
-                  progress={progress}
-                  status={status}
-                />
-              )}
-              {!isLoading && (
-                <StatusIndicator
-                  status={status}
-                  isLoading={isLoading}
-                />
-              )}
-            </div>
-            {/* Right Panel - Results */}
-            <div className="xl:sticky xl:top-8 xl:h-fit">
-              <ResultsArea
-                results={results}
-                isLoading={isLoading}
-                topic={topic}
-                images={images}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </SidebarProvider>
-  );
-};
+  // This object will be shared with MainAppContent
+  const shared = {
+    showHistory, setShowHistory,
+    handlePickURL, handlePickFile,
+    sourceType, setSourceType,
+    selectedFiles, setSelectedFiles,
+    urls, setUrls,
+    topic, setTopic,
+    results, setResults,
+    isLoading, setIsLoading,
+    status, setStatus,
+    progress, setProgress,
+    images, setImages,
+    handleExtract
+  };
 
-const AuthenticatedApp = () => {
-  return (
-    <SourceHistoryProvider>
-      <MainIndex />
-    </SourceHistoryProvider>
-  );
+  return <MainAppContent {...shared} />;
 };
 
 const Index = () => {
@@ -289,28 +323,31 @@ const Index = () => {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <h1 className="text-4xl font-bold text-slate-800 mb-4">Welcome to Data Extractor</h1>
-          <p className="text-slate-600 mb-8">Sign in to start extracting and analyzing data from PDFs and websites</p>
-          <Button 
-            className="px-10 py-4 text-base bg-blue-600 hover:bg-blue-700" 
-            onClick={() => setLoginOpen(true)}
-          >
-            Sign in to Continue
-          </Button>
-        </div>
-        <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
-      </div>
-    );
-  }
-
   return (
     <>
-      <UserBar user={user} onLogout={signOut} />
-      <AuthenticatedApp />
+      {/* Show UserBar and SourceHistory only if authenticated */}
+      {user && <UserBar user={user} onLogout={signOut} />}
+      <div className="absolute top-4 right-4 z-40">
+        {!user && (
+          <Button 
+            className="ml-4" 
+            variant="default" 
+            size="sm" 
+            onClick={() => setLoginOpen(true)}
+          >
+            Sign In
+          </Button>
+        )}
+      </div>
+      {/* Authenticated: show SourceHistoryProvider; else: skip it */}
+      {user ? (
+        <SourceHistoryProvider>
+          <MainIndex />
+        </SourceHistoryProvider>
+      ) : (
+        <MainIndex />
+      )}
+      <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
     </>
   );
 };
