@@ -21,57 +21,67 @@ export const downloadAsPDF = async (
   const doc = new jsPDF();
   doc.setFontSize(22);
   doc.text(heading, 14, 20);
+  let y = 32;
   if(mainTopic) {
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
-    doc.text(`Topic: ${mainTopic}`, 14, 32);
-    doc.setFont(undefined, 'normal'); // reset to normal after bold
+    doc.text(`Topic: ${mainTopic}`, 14, y);
+    y += 10;
+    doc.setFont(undefined, 'normal'); // reset font style
   }
   doc.setFontSize(12);
 
-  // Add line wrapping and bullet formatting
-  let y = mainTopic ? 42 : 32;
+  // Handle content lines w/ dynamic line height adjustment
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const leftMargin = 14;
+  const rightMargin = 14;
+  const wrapWidth = doc.internal.pageSize.getWidth() - leftMargin - rightMargin;
   const lines = content.split('\n');
-  lines.forEach(line => {
-    if (line.trim().startsWith('**') && line.trim().endsWith('**')) { // Markdown heading
+
+  for (let line of lines) {
+    // Markdown heading lines
+    if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
       doc.setFontSize(16);
       doc.setFont(undefined, 'bold');
-      doc.text(line.replace(/\*\*/g, ''), 14, y);
+      doc.text(line.replace(/\*\*/g, ''), leftMargin, y);
       doc.setFontSize(12);
       doc.setFont(undefined, 'normal');
       y += 10;
-    } else if (line.trim().startsWith('-')) { // Bullet
-      doc.text(line, 18, y);
+    } else if (line.trim().startsWith('-')) {
+      doc.text(line, leftMargin + 4, y, { maxWidth: wrapWidth - 8 });
       y += 8;
     } else {
-      doc.text(line, 14, y, { maxWidth: 180 });
-      y += 8;
+      // Wrap lines to avoid overflow
+      const splitted = doc.splitTextToSize(line, wrapWidth);
+      for (const l of splitted) {
+        doc.text(l, leftMargin, y);
+        y += 8;
+        if (y > pageHeight - 20) { doc.addPage(); y = 20; }
+      }
     }
-    if (y > 280) { doc.addPage(); y = 20; }
-  });
+    if (y > pageHeight - 20) { doc.addPage(); y = 20; }
+  }
 
-  // Images: Because jsPDF cannot reliably embed remote images due to CORS, we instead list the image URLs.
+  // List images as clickable links
   if (images?.length) {
-    if (y > 240) {
-      doc.addPage();
-      y = 20;
-    }
+    if (y > pageHeight - 40) { doc.addPage(); y = 20; }
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text("Extracted Images", 14, y);
+    doc.text("Extracted Images", leftMargin, y);
     y += 10;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     images.forEach((imgUrl, idx) => {
-      if (y > 280) { doc.addPage(); y = 20; }
-      doc.text(`Image ${idx + 1}: ${imgUrl}`, 14, y, { maxWidth: 180 });
+      if (y > pageHeight - 10) { doc.addPage(); y = 20; }
+      // NOTE: true hyperlinks are not supported; user will see link text
+      doc.text(`Image ${idx + 1}: ${imgUrl}`, leftMargin, y, { maxWidth: wrapWidth });
       y += 8;
     });
   }
-
   doc.save(filename);
 };
 
+// ========== Reliable Word Export =============
 export const downloadAsWord = async (
   content: string,
   filename: string = 'data-extraction-results.docx',
@@ -83,7 +93,7 @@ export const downloadAsWord = async (
 
   const children = [];
 
-  // Heading
+  // Document heading
   children.push(
     new Paragraph({
       text: heading,
@@ -92,7 +102,7 @@ export const downloadAsWord = async (
     })
   );
 
-  // Main topic, bold
+  // Main topic bold row
   if(mainTopic) {
     children.push(
       new Paragraph({
@@ -105,10 +115,10 @@ export const downloadAsWord = async (
     );
   }
 
-  // Content formatting
+  // Split content by newline and handle formatting (headings, bullets)
   const lines = content.split('\n');
   lines.forEach(line => {
-    if (line.trim().startsWith('**') && line.trim().endsWith('**')) { // Markdown heading
+    if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
       children.push(
         new Paragraph({
           text: line.replace(/\*\*/g, ''),
@@ -132,10 +142,7 @@ export const downloadAsWord = async (
     }
   });
 
-  // Create the doc object here (before embedding images)
-  const doc = new Document({ sections: [{ children: [] }] });
-
-  // Insert images in the DOCX: Try the safest approach, fallback to links if image insertion fails
+  // List clickable links for images
   if (images?.length) {
     children.push(
       new Paragraph({
@@ -144,53 +151,27 @@ export const downloadAsWord = async (
         spacing: { after: 150 }
       })
     );
-    for (let imgUrl of images) {
-      try {
-        const res = await fetch(imgUrl);
-        const imgBlob = await res.blob();
-        const arrayBuffer = await imgBlob.arrayBuffer();
-        // Try to use doc.createImage correctly
-        if (typeof (doc as any).createImage === 'function') {
-          const image = (doc as any).createImage(arrayBuffer, 350, 200);
-          children.push(image);
-        } else {
-          // Fallback: just add the link if no createImage
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({ text: `Image: `, bold: true }),
-                new TextRun({
-                  text: imgUrl,
-                  underline: { type: 'single', color: '0000FF' },
-                  color: "0000FF"
-                })
-              ],
-              spacing: { after: 60 }
+    images.forEach((imgUrl, idx) => {
+      // Always include a clickable link to the image, for reliability
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: `Image ${idx + 1}: `, bold: true }),
+            new TextRun({
+              text: imgUrl,
+              underline: { type: 'single', color: '0000FF' },
+              color: "0000FF",
+              style: "Hyperlink"
             })
-          );
-        }
-      } catch (e) {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Image: `, bold: true }),
-              new TextRun({
-                text: imgUrl,
-                underline: { type: 'single', color: '0000FF' },
-                color: "0000FF"
-              })
-            ],
-            spacing: { after: 60 }
-          })
-        );
-      }
-      // Small space after each img/link
-      children.push(new Paragraph({ text: "", spacing: { after: 40 } }));
-    }
+          ],
+          spacing: { after: 60 }
+        })
+      );
+    });
   }
 
-  // Attach all children to the doc section.
-  (doc as any).Sections[0].Properties.options.children = children;
+  // Create the doc object and attach content
+  const doc = new Document({ sections: [{ children }] });
 
   const blob = await Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
