@@ -12,18 +12,90 @@ const corsHeaders = {
 
 // Helper to create email HTML with results, topic, and images
 function formatEmailHTML({ topic, results, images }: { topic: string; results: string; images: string[] }): string {
-  let html = `<h2>AI Extraction Results</h2>`;
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  let html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; background-color: #f8fafc; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600;">🤖 AI Extraction Results</h1>
+        <p style="color: #e2e8f0; margin: 10px 0 0 0; font-size: 16px;">Generated on ${currentDate}</p>
+      </div>
+      
+      <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+  `;
+
   if (topic) {
-    html += `<p><strong>Topic:</strong> ${topic}</p>`;
+    html += `
+        <div style="background: #f1f5f9; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+          <h2 style="color: #1e293b; margin: 0 0 10px 0; font-size: 20px; display: flex; align-items: center;">
+            <span style="background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 12px;">📋</span>
+            Extraction Topic
+          </h2>
+          <p style="color: #475569; margin: 0; font-size: 16px; font-weight: 500;">${topic}</p>
+        </div>
+    `;
   }
-  html += `<pre style="background:#222;color:#8ff;padding:1em;border-radius:8px;">${results}</pre>`;
+
+  html += `
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px; display: flex; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+            <span style="background: #10b981; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 12px;">✨</span>
+            Extracted Content
+          </h2>
+          <div style="background: #1a1a1a; color: #00ff88; padding: 25px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; overflow-x: auto; border: 1px solid #333;">
+            <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">${results}</pre>
+          </div>
+        </div>
+  `;
+
   if (images && images.length) {
-    html += `<h3>Extracted Images</h3>`;
+    html += `
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px; display: flex; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+            <span style="background: #f59e0b; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 12px;">🖼️</span>
+            Extracted Images (${images.length})
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+    `;
+    
     images.forEach((img, idx) => {
-      html += `<div style="margin-bottom:8px;"><img src="${img}" alt="Extracted ${idx+1}" style="max-width:300px;max-height:160px;display:block;margin-bottom:2px;"/><a href="${img}" target="_blank">${img}</a></div>`;
+      html += `
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <img src="${img}" alt="Extracted Image ${idx+1}" style="width: 100%; height: 200px; object-fit: cover; border-bottom: 1px solid #e2e8f0;" />
+              <div style="padding: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #374151; font-size: 14px; font-weight: 600;">Image ${idx+1}</h4>
+                <a href="${img}" target="_blank" style="color: #3b82f6; text-decoration: none; font-size: 13px; word-break: break-all; background: #eff6ff; padding: 8px 12px; border-radius: 6px; display: block; text-align: center; border: 1px solid #dbeafe;">
+                  📥 View/Download Image
+                </a>
+              </div>
+            </div>
+      `;
     });
+    
+    html += `
+          </div>
+        </div>
+    `;
   }
-  html += `<hr/><p style="font-size:12px;color:#888;">Sent by AI Extraction App</p>`;
+
+  html += `
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
+          <p style="color: #64748b; margin: 0; font-size: 14px;">
+            📧 This email was generated by your AI Extraction App<br>
+            <span style="font-size: 12px; color: #94a3b8;">Results processed and delivered automatically</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+  
   return html;
 }
 
@@ -44,11 +116,11 @@ serve(async (req: Request) => {
 
     const html = formatEmailHTML({ topic, results, images: images || [] });
     const subject = topic
-      ? `AI Extraction Results: ${topic}`
-      : "AI Extraction Results";
+      ? `🤖 AI Extraction Results: ${topic}`
+      : "🤖 AI Extraction Results";
 
     const emailResponse = await resend.emails.send({
-      from: "Lovable <onboarding@resend.dev>",
+      from: "AI Extraction App <onboarding@resend.dev>",
       to: [to],
       subject,
       html,
