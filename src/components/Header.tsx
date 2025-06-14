@@ -2,13 +2,16 @@
 import { FileText, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { FeatureReportButton } from "@/components/FeatureReportButton";
 
 export const Header = () => {
   const { t } = useLanguage();
 
   return (
     <div className="text-center animate-fade-in">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4 gap-2">
+        {/* Management Feature Report Button */}
+        <FeatureReportButton />
         <LanguageSelector />
       </div>
       <div className="flex items-center justify-center gap-3 mb-4">
