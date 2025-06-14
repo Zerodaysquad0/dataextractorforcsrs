@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
@@ -128,7 +129,16 @@ const MainIndex = () => {
   const { toast } = useToast();
 
   const [showHistory, setShowHistory] = useState(false);
-  const { addSource } = useSourceHistory ? useSourceHistory() : { addSource: () => {} }; // fallback for anon
+  
+  // Safely use the hook with proper error handling
+  let addSource: (src: any) => void = () => {};
+  try {
+    const { addSource: hookAddSource } = useSourceHistory();
+    addSource = hookAddSource;
+  } catch (error) {
+    // If hook is used outside provider, use fallback
+    console.log('Source history not available');
+  }
 
   const handleExtract = async () => {
     if (!topic.trim()) {
@@ -173,30 +183,28 @@ const MainIndex = () => {
       return;
     }
 
-    // Save source history (only if addSource exists)
-    if (addSource) {
-      if (sourceType === "PDF" || sourceType === "Both") {
-        selectedFiles.forEach((file) => {
-          addSource({
-            id: `PDF:${file.name}`,
-            type: "PDF",
-            label: file.name,
-            file: { name: file.name },
-            created: Date.now(),
-          });
+    // Save source history
+    if (sourceType === "PDF" || sourceType === "Both") {
+      selectedFiles.forEach((file) => {
+        addSource({
+          id: `PDF:${file.name}`,
+          type: "PDF",
+          label: file.name,
+          file: { name: file.name },
+          created: Date.now(),
         });
-      }
-      if ((sourceType === "Website" || sourceType === "Both") && urlList.length > 0) {
-        urlList.forEach((url) => {
-          addSource({
-            id: `Website:${url}`,
-            type: "Website",
-            label: url,
-            url,
-            created: Date.now(),
-          });
+      });
+    }
+    if ((sourceType === "Website" || sourceType === "Both") && urlList.length > 0) {
+      urlList.forEach((url) => {
+        addSource({
+          id: `Website:${url}`,
+          type: "Website",
+          label: url,
+          url,
+          created: Date.now(),
         });
-      }
+      });
     }
     
     setIsLoading(true);
