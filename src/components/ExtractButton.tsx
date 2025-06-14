@@ -1,6 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ExtractButtonProps {
   onClick: () => void;
@@ -8,6 +9,8 @@ interface ExtractButtonProps {
 }
 
 export const ExtractButton = ({ onClick, isLoading }: ExtractButtonProps) => {
+  const { t } = useLanguage();
+
   return (
     <div className="animate-scale-in">
       <Button
@@ -18,12 +21,12 @@ export const ExtractButton = ({ onClick, isLoading }: ExtractButtonProps) => {
         {isLoading ? (
           <>
             <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-            Extracting Content...
+            {t('extract.loading')}
           </>
         ) : (
           <>
             <Sparkles className="w-6 h-6 mr-3" />
-            Extract from All Sources
+            {t('extract.button')}
           </>
         )}
       </Button>

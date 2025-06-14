@@ -1,9 +1,11 @@
+
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { FileDown, Copy, CheckCircle, Loader2, FileText, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/context/LanguageContext';
 import { downloadAsText } from '@/utils/downloadText';
 import { downloadAsPDF } from '@/utils/downloadPDF';
 import { downloadAsWord } from '@/utils/downloadWord';
@@ -20,20 +22,21 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
   const [copied, setCopied] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(results);
       setCopied(true);
       toast({
-        title: "Copied to clipboard",
-        description: "Results have been copied to your clipboard",
+        title: t('toast.copied'),
+        description: t('toast.copiedDesc'),
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast({
-        title: "Copy failed",
-        description: "Failed to copy to clipboard",
+        title: t('toast.copyFailed'),
+        description: t('toast.copyFailedDesc'),
         variant: "destructive",
       });
     }
@@ -42,24 +45,24 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
   const handleDownloadText = () => {
     downloadAsText(results, 'data-extraction-results.txt');
     toast({
-      title: "Download started",
-      description: "Your results are being downloaded as a text file",
+      title: t('toast.downloadStarted'),
+      description: t('toast.downloadTextDesc'),
     });
   };
 
   const handleDownloadPDF = () => {
     downloadAsPDF(results, 'data-extraction-results.pdf', "Extraction Results", topic || "", images);
     toast({
-      title: "Download started",
-      description: "Your results are being downloaded as a PDF file",
+      title: t('toast.downloadStarted'),
+      description: t('toast.downloadPDFDesc'),
     });
   };
 
   const handleDownloadWord = () => {
     downloadAsWord(results, 'data-extraction-results.docx', "Extraction Results", topic || "", images);
     toast({
-      title: "Download started",
-      description: "Your results are being downloaded as a Word file",
+      title: t('toast.downloadStarted'),
+      description: t('toast.downloadWordDesc'),
     });
   };
 
@@ -68,7 +71,7 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
           <FileDown className="w-5 h-5 text-blue-600" />
-          Extraction Results
+          {t('results.title')}
         </h3>
         {results && !isLoading && (
           <div className="flex gap-2">
@@ -77,7 +80,7 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
               size="sm"
               onClick={handleCopy}
               className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
-              title="Copy to clipboard"
+              title={t('results.copyToClipboard')}
             >
               {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </Button>
@@ -86,7 +89,7 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
               size="sm"
               onClick={handleDownloadText}
               className="hover:bg-green-50 hover:border-green-300 transition-colors"
-              title="Download as text file"
+              title={t('results.downloadText')}
             >
               <FileText className="w-4 h-4" />
             </Button>
@@ -95,7 +98,7 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
               size="sm"
               onClick={handleDownloadWord}
               className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
-              title="Download as Word file"
+              title={t('results.downloadWord')}
             >
               <FileDown className="w-4 h-4" /> <span className="text-xs">Word</span>
             </Button>
@@ -104,7 +107,7 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
               size="sm"
               onClick={handleDownloadPDF}
               className="hover:bg-purple-50 hover:border-purple-300 transition-colors"
-              title="Download as PDF"
+              title={t('results.downloadPDF')}
             >
               <FileDown className="w-4 h-4" /> <span className="text-xs">PDF</span>
             </Button>
@@ -113,7 +116,7 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
               size="sm"
               onClick={() => setShowEmailDialog(true)}
               className="hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
-              title="Share via Email"
+              title={t('results.shareEmail')}
             >
               <Mail className="w-4 h-4" /> <span className="text-xs">Email</span>
             </Button>
@@ -124,20 +127,20 @@ export const ResultsArea = ({ results, isLoading, topic, images = [] }: ResultsA
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <Loader2 className="w-12 h-12 animate-spin mb-4" />
-            <p className="text-lg font-medium">Processing your sources...</p>
-            <p className="text-sm">Extracting and analyzing content with AI</p>
+            <p className="text-lg font-medium">{t('results.processing')}</p>
+            <p className="text-sm">{t('results.processingDesc')}</p>
           </div>
         ) : (
           <>
             <Textarea
-              value={results || 'Results will appear here after extraction...\n\nThe AI will analyze your PDFs and websites to extract relevant information about your specified topic.'}
+              value={results || t('results.placeholder')}
               readOnly
               className="h-full resize-none bg-slate-900 text-green-400 font-mono text-sm border-slate-700 focus:border-slate-600 focus:ring-slate-600/20"
-              placeholder="Results will appear here after extraction..."
+              placeholder={t('results.placeholder')}
             />
             {images?.length ? (
               <div className="mt-4">
-                <h4 className="text-base font-semibold mb-2 text-slate-800">Extracted Images</h4>
+                <h4 className="text-base font-semibold mb-2 text-slate-800">{t('results.extractedImages')}</h4>
                 <div className="flex flex-wrap gap-3">
                   {images.map((img, i) => (
                     <div key={img + i} className="flex flex-col items-start max-w-xs">
