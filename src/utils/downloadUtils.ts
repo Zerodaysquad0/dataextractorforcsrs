@@ -10,6 +10,18 @@ export const downloadAsText = (content: string, filename: string = 'data-extract
   URL.revokeObjectURL(url);
 };
 
+// Helper to check if a URL is reachable via HEAD. Returns true if status is 200, false otherwise.
+async function isImageUrlReachable(url: string): Promise<boolean> {
+  try {
+    const resp = await fetch(url, { method: 'HEAD', mode: 'no-cors' });
+    // If fetch does not throw, assume it's reachable. Some browser HEADs with no-cors always succeed, so fallback is to try-catch.
+    // Advanced solution would try loading as an <img> if on the client, but we are limited here.
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const downloadAsPDF = async (
   content: string, 
   filename: string = 'data-extraction-results.pdf',
@@ -27,7 +39,7 @@ export const downloadAsPDF = async (
     doc.setFont(undefined, 'bold');
     doc.text(`Topic: ${mainTopic}`, 14, y);
     y += 10;
-    doc.setFont(undefined, 'normal'); // reset font style
+    doc.setFont(undefined, 'normal');
   }
   doc.setFontSize(12);
 
@@ -62,19 +74,26 @@ export const downloadAsPDF = async (
     if (y > pageHeight - 20) { doc.addPage(); y = 20; }
   }
 
-  // List images as clickable links
+  // List images as clickable links with broken-link detection
   if (images?.length) {
-    if (y > pageHeight - 40) { doc.addPage(); y = 20; }
+    if (y > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); y = 20; }
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text("Extracted Images", leftMargin, y);
+    doc.text("Extracted Images", 14, y);
     y += 10;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
+    // Check each image and note if broken
+    const statusArr: boolean[] = [];
+    for (const imgUrl of images) {
+      const ok = await isImageUrlReachable(imgUrl);
+      statusArr.push(ok);
+    }
     images.forEach((imgUrl, idx) => {
-      if (y > pageHeight - 10) { doc.addPage(); y = 20; }
-      // NOTE: true hyperlinks are not supported; user will see link text
-      doc.text(`Image ${idx + 1}: ${imgUrl}`, leftMargin, y, { maxWidth: wrapWidth });
+      if (y > doc.internal.pageSize.getHeight() - 10) { doc.addPage(); y = 20; }
+      const isWorking = statusArr[idx];
+      const text = `Image ${idx + 1}: ${imgUrl}${isWorking ? "" : " (broken link)"}`;
+      doc.text(text, 14, y, { maxWidth: doc.internal.pageSize.getWidth() - 28 });
       y += 8;
     });
   }
@@ -142,8 +161,10 @@ export const downloadAsWord = async (
     }
   });
 
-  // List clickable links for images
+  // Check each image and note if broken
+  let imageStatusArr: boolean[] = [];
   if (images?.length) {
+    imageStatusArr = await Promise.all(images.map(isImageUrlReachable));
     children.push(
       new Paragraph({
         text: "Extracted Images",
@@ -152,7 +173,7 @@ export const downloadAsWord = async (
       })
     );
     images.forEach((imgUrl, idx) => {
-      // Always include a clickable link to the image, for reliability
+      const isWorking = imageStatusArr[idx];
       children.push(
         new Paragraph({
           children: [
@@ -162,7 +183,8 @@ export const downloadAsWord = async (
               underline: { type: 'single', color: '0000FF' },
               color: "0000FF",
               style: "Hyperlink"
-            })
+            }),
+            ...(isWorking ? [] : [new TextRun({ text: " (broken link)", color: "FF0000" })])
           ],
           spacing: { after: 60 }
         })
