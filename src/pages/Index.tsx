@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
@@ -15,28 +14,9 @@ import { SourceHistoryProvider, useSourceHistory } from '@/context/SourceHistory
 import { SourceHistorySidebar } from '@/components/SourceHistorySidebar';
 import { Clock } from 'lucide-react';
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { LoginDialog } from '@/components/LoginDialog';
 import { Button } from '@/components/ui/button';
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
-
-const UserBar: React.FC<{ onLogout: () => void, user: any }> = ({ onLogout, user }) => (
-  <div className="fixed top-4 right-4 z-50 flex items-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 gap-3 border border-white/20">
-    <img 
-      src={user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`} 
-      alt="avatar" 
-      className="w-8 h-8 rounded-full border-2 border-blue-200" 
-    />
-    <div className="flex flex-col">
-      <span className="font-medium text-slate-700 text-sm">{user.user_metadata?.full_name || user.email}</span>
-      <span className="text-xs text-slate-500">{user.email}</span>
-    </div>
-    <Button onClick={onLogout} size="sm" variant="outline" className="text-xs">
-      Logout
-    </Button>
-  </div>
-);
 
 // Helper for app main content to avoid duplication
 const MainAppContent = ({
@@ -135,7 +115,6 @@ const MainAppContent = ({
   </SidebarProvider>
 );
 
-// Main logic — switch on presence of `user`
 const MainIndex = () => {
   const [sourceType, setSourceType] = useState<SourceType>('Both');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -309,53 +288,15 @@ const MainIndex = () => {
 };
 
 const Index = () => {
-  const [loginOpen, setLoginOpen] = useState(false);
-  const { user, loading, signOut } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-xl text-blue-700 font-semibold">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <>
-      {/* Show UserBar and SourceHistory only if authenticated */}
-      {user && <UserBar user={user} onLogout={signOut} />}
-      <div className="absolute top-4 right-4 z-40">
-        {!user && (
-          <Button 
-            className="ml-4" 
-            variant="default" 
-            size="sm" 
-            onClick={() => setLoginOpen(true)}
-          >
-            Sign In
-          </Button>
-        )}
-      </div>
-      {/* Authenticated: show SourceHistoryProvider; else: skip it */}
-      {user ? (
-        <SourceHistoryProvider>
-          <MainIndex />
-        </SourceHistoryProvider>
-      ) : (
-        <MainIndex />
-      )}
-      <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
-    </>
+    <SourceHistoryProvider>
+      <MainIndex />
+    </SourceHistoryProvider>
   );
 };
 
 const WrappedIndex = () => (
-  <AuthProvider>
-    <Index />
-  </AuthProvider>
+  <Index />
 );
 
 export default WrappedIndex;
