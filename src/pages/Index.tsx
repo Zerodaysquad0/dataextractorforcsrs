@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
@@ -16,16 +17,25 @@ import { Clock } from 'lucide-react';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { LoginDialog } from '@/components/LoginDialog';
-import { Button } from '@/components/ui/button'; // <-- FIX: Add Button import
+import { Button } from '@/components/ui/button';
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
 
 // Helper: User Info Avatar/Menu
 const UserBar: React.FC<{ onLogout: () => void, user: any }> = ({ onLogout, user }) => (
-  <div className="fixed top-4 right-4 z-50 flex items-center bg-white/90 rounded-full shadow-md px-3 py-2 gap-2">
-    <img src={user.avatar_url ?? `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`} alt="avatar" className="w-7 h-7 rounded-full border" />
-    <span className="font-medium text-slate-700 mr-2">{user.email}</span>
-    <button onClick={onLogout} className="text-xs bg-blue-600 hover:bg-blue-800 text-white rounded px-3 py-1">Logout</button>
+  <div className="fixed top-4 right-4 z-50 flex items-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 gap-3 border border-white/20">
+    <img 
+      src={user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`} 
+      alt="avatar" 
+      className="w-8 h-8 rounded-full border-2 border-blue-200" 
+    />
+    <div className="flex flex-col">
+      <span className="font-medium text-slate-700 text-sm">{user.user_metadata?.full_name || user.email}</span>
+      <span className="text-xs text-slate-500">{user.email}</span>
+    </div>
+    <Button onClick={onLogout} size="sm" variant="outline" className="text-xs">
+      Logout
+    </Button>
   </div>
 );
 
@@ -88,7 +98,7 @@ const MainIndex = () => {
       return;
     }
 
-    // Save source history:
+    // Save source history
     if (sourceType === "PDF" || sourceType === "Both") {
       selectedFiles.forEach((file) => {
         addSource({
@@ -111,6 +121,7 @@ const MainIndex = () => {
         });
       });
     }
+    
     setIsLoading(true);
     setResults('');
     setProgress(0);
@@ -132,7 +143,6 @@ const MainIndex = () => {
         let resultsText = result.content;
         setImages(result.images || []);
         if (result.images && result.images.length > 0) {
-          // Append download links for each image to the results text:
           resultsText += `\n\nExtracted Images:\n`;
           result.images.forEach((imgUrl, idx) => {
             resultsText += `Image ${idx + 1}: ${imgUrl}\n`;
@@ -166,13 +176,12 @@ const MainIndex = () => {
     }
   };
 
-  // When user clicks history source entry, allow to autofill file/url input:
   const handlePickURL = (url: string) => {
     setUrls((prev) => prev.includes(url) ? prev : (prev ? prev + '\n' : '') + url);
     setSourceType("Website");
   };
+  
   const handlePickFile = (fileMeta: { name: string }) => {
-    // User must re-upload file for security. Show a toast instead.
     toast({
       title: "PDF re-upload required",
       description: `Due to browser security, please select the file "${fileMeta.name}" again.`,
@@ -185,19 +194,22 @@ const MainIndex = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 w-full">
-        <button
-          className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded shadow-xl flex items-center gap-2"
+        <Button
+          className="fixed top-4 left-4 z-50 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
           onClick={() => setShowHistory(v => !v)}
-          title="Show Source History"
+          size="sm"
         >
-          <Clock className="w-5 h-5" /> Source History
-        </button>
+          <Clock className="w-4 h-4 mr-2" />
+          History
+        </Button>
+        
         <SourceHistorySidebar
           open={showHistory}
           onClose={() => setShowHistory(false)}
           onSelectURL={handlePickURL}
           onSelectFile={handlePickFile}
         />
+        
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <Header />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
@@ -255,37 +267,46 @@ const MainIndex = () => {
 };
 
 const AuthenticatedApp = () => {
-  return <MainIndex />;
+  return (
+    <SourceHistoryProvider>
+      <MainIndex />
+    </SourceHistoryProvider>
+  );
 };
 
 const Index = () => {
   const [loginOpen, setLoginOpen] = useState(false);
-
-  // Use our auth context
   const { user, loading, signOut } = useAuth();
 
-  // Don't flash the app while loading session:
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-xl text-blue-700 font-semibold">
-        Loading...
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl text-blue-700 font-semibold">Loading...</p>
+        </div>
       </div>
     );
   }
 
   if (!user) {
-    // Not signed in, show login dialog only
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <Button className="px-10 py-4 text-base" onClick={() => setLoginOpen(true)}>
-          Sign in to Continue
-        </Button>
+        <div className="text-center max-w-md mx-auto p-8">
+          <h1 className="text-4xl font-bold text-slate-800 mb-4">Welcome to Data Extractor</h1>
+          <p className="text-slate-600 mb-8">Sign in to start extracting and analyzing data from PDFs and websites</p>
+          <Button 
+            className="px-10 py-4 text-base bg-blue-600 hover:bg-blue-700" 
+            onClick={() => setLoginOpen(true)}
+          >
+            Sign in to Continue
+          </Button>
+        </div>
         <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
       </div>
     );
   }
 
-  // Signed in, show app and user info
   return (
     <>
       <UserBar user={user} onLogout={signOut} />

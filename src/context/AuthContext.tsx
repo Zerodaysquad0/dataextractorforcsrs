@@ -1,19 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { createClient, SupabaseClient, Session, User } from "@supabase/supabase-js";
-
-// Get Supabase credentials from environment (Lovable auto-injects)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-
-// Runtime check for missing credentials
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase environment variables are missing. Please make sure your Lovable project is connected to Supabase. If you've recently connected, try restarting your app or refreshing the page."
-  );
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 type AuthContextType = {
   user: User | null;
@@ -33,46 +21,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    };
-    getSession();
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
     });
+
+    // Then check for existing session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+    
+    getSession();
+
     return () => {
-      listener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
   const signInWithGoogle = async () => {
     setLoading(true);
-    await supabase.auth.signInWithOAuth({ provider: "google" });
-    setLoading(false);
+    const { error } = await supabase.auth.signInWithOAuth({ 
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
+    });
+    if (error) {
+      console.error('Google sign in error:', error);
+      setLoading(false);
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    setLoading(false);
+    if (error) {
+      setLoading(false);
+      throw error;
+    }
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
-    setLoading(false);
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`
+      }
+    });
+    if (error) {
+      setLoading(false);
+      throw error;
+    }
   };
 
   const signOut = async () => {
     setLoading(true);
     await supabase.auth.signOut();
-    setLoading(false);
+    window.location.href = '/';
   };
 
   return (
