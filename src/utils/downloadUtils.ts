@@ -83,7 +83,6 @@ export const downloadAsPDF = async (
     y += 10;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
-    // Check each image and note if broken
     const statusArr: boolean[] = [];
     for (const imgUrl of images) {
       const ok = await isImageUrlReachable(imgUrl);
@@ -92,9 +91,16 @@ export const downloadAsPDF = async (
     images.forEach((imgUrl, idx) => {
       if (y > doc.internal.pageSize.getHeight() - 10) { doc.addPage(); y = 20; }
       const isWorking = statusArr[idx];
-      const text = `Image ${idx + 1}: ${imgUrl}${isWorking ? "" : " (broken link)"}`;
-      doc.text(text, 14, y, { maxWidth: doc.internal.pageSize.getWidth() - 28 });
-      y += 8;
+      // <<<<<<<< ADDED: use short link text + footnote to reduce clipping/overflow
+      const text = `Image ${idx + 1}: [open image link]${isWorking ? "" : " (broken link)"}`;
+      doc.textWithLink(text, 14, y, { url: imgUrl });
+      doc.text(
+        `URL: ${imgUrl.slice(0, 60)}${imgUrl.length > 60 ? "..." : ""}`,
+        14,
+        y + 6,
+        { maxWidth: doc.internal.pageSize.getWidth() - 28 }
+      );
+      y += 14;
     });
   }
   doc.save(filename);
@@ -179,10 +185,15 @@ export const downloadAsWord = async (
           children: [
             new TextRun({ text: `Image ${idx + 1}: `, bold: true }),
             new TextRun({
-              text: imgUrl,
+              text: "[open image link]",
               underline: { type: 'single', color: '0000FF' },
               color: "0000FF",
-              style: "Hyperlink"
+              style: "Hyperlink",
+              hyperlink: imgUrl,
+            }),
+            new TextRun({
+              text: ` | URL: ${imgUrl.slice(0, 60)}${imgUrl.length > 60 ? "..." : ""}`,
+              color: "555555",
             }),
             ...(isWorking ? [] : [new TextRun({ text: " (broken link)", color: "FF0000" })])
           ],

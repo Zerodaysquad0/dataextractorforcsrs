@@ -1,4 +1,3 @@
-
 import { extractTextFromPDF, extractTextFromWebsite, extractAndFilterContent, WebsiteExtractionResult } from '@/utils/textExtraction';
 
 export interface ExtractionParams {
@@ -24,40 +23,60 @@ export const performExtraction = async (params: ExtractionParams): Promise<Extra
   }
 
   try {
-    const results: string[] = [];
-    let completed = 0;
     let allImages: string[] = [];
-    const totalTasks = 
-      (sourceType === 'PDF' || sourceType === 'Both' ? files.length : 0) +
-      (sourceType === 'Website' || sourceType === 'Both' ? urls.length : 0);
+    const pdfTasks: Promise<string>[] = [];
+    const websiteTasks: Promise<{content: string; images: string[]}>[] = [];
 
-    // Process PDFs
+    let totalTasks = 0;
+    if (sourceType === 'PDF' || sourceType === 'Both') totalTasks += files.length;
+    if (sourceType === 'Website' || sourceType === 'Both') totalTasks += urls.length;
+
+    let completed = 0;
+
+    // Parallel PDF processing
     if ((sourceType === 'PDF' || sourceType === 'Both') && files.length > 0) {
       for (const file of files) {
-        onProgress?.(Math.round((completed / totalTasks) * 100), `Processing ${file.name}...`);
-        const rawText = await extractTextFromPDF(file);
-        const header = `FILE: ${file.name}`;
-        const processedContent = await extractAndFilterContent(rawText, header, topic);
-        results.push(processedContent);
-        completed++;
+        const pdfPromise = (async () => {
+          onProgress?.(Math.round((completed / totalTasks) * 100), `Processing ${file.name}...`);
+          const rawText = await extractTextFromPDF(file);
+          const header = `FILE: ${file.name}`;
+          const processedContent = await extractAndFilterContent(rawText, header, topic);
+          completed++;
+          onProgress?.(Math.round((completed / totalTasks) * 100), `Processed ${file.name}`);
+          return processedContent;
+        })();
+        pdfTasks.push(pdfPromise);
       }
     }
 
-    // Process URLs
+    // Parallel Website processing
     if ((sourceType === 'Website' || sourceType === 'Both') && urls.length > 0) {
       for (const url of urls) {
         if (!url.trim()) continue;
-        onProgress?.(Math.round((completed / totalTasks) * 100), `Processing ${url}...`);
-
-        const websiteResult: WebsiteExtractionResult = await extractTextFromWebsite(url);
-        const header = `WEBSITE: ${url}`;
-        const processedContent = await extractAndFilterContent(websiteResult.text, header, topic);
-        results.push(processedContent);
-        if (websiteResult.images && websiteResult.images.length) {
-          allImages.push(...websiteResult.images);
-        }
-        completed++;
+        const webPromise = (async () => {
+          onProgress?.(Math.round((completed / totalTasks) * 100), `Processing ${url}...`);
+          const websiteResult: WebsiteExtractionResult = await extractTextFromWebsite(url);
+          const header = `WEBSITE: ${url}`;
+          const processedContent = await extractAndFilterContent(websiteResult.text, header, topic);
+          completed++;
+          onProgress?.(Math.round((completed / totalTasks) * 100), `Processed ${url}`);
+          return { content: processedContent, images: websiteResult.images || [] };
+        })();
+        websiteTasks.push(webPromise);
       }
+    }
+
+    // Await all processing in parallel, flattening results where needed
+    const [pdfResults, websiteResults] = await Promise.all([
+      Promise.all(pdfTasks),
+      Promise.all(websiteTasks),
+    ]);
+
+    let results: string[] = [];
+    if (pdfResults.length) results.push(...pdfResults);
+    if (websiteResults.length) {
+      results.push(...websiteResults.map(r => r.content));
+      allImages = websiteResults.reduce((arr, r) => arr.concat(r.images), [] as string[]);
     }
 
     const finalContent = results.join('\n\n').trim() || 'No relevant content found.';
@@ -68,7 +87,6 @@ export const performExtraction = async (params: ExtractionParams): Promise<Extra
       content: finalContent,
       images: allImages,
     };
-
   } catch (error) {
     console.error('Extraction error:', error);
     return {
