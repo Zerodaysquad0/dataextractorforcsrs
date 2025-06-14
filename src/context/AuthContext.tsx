@@ -3,8 +3,16 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { createClient, SupabaseClient, Session, User } from "@supabase/supabase-js";
 
 // Get Supabase credentials from environment (Lovable auto-injects)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+// Runtime check for missing credentials
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Supabase environment variables are missing. Please make sure your Lovable project is connected to Supabase. If you've recently connected, try restarting your app or refreshing the page."
+  );
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 type AuthContextType = {

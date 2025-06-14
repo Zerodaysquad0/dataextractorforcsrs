@@ -16,6 +16,7 @@ import { Clock } from 'lucide-react';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { LoginDialog } from '@/components/LoginDialog';
+import { Button } from '@/components/ui/button'; // <-- FIX: Add Button import
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
 
