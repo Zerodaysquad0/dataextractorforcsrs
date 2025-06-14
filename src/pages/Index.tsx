@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { SourceSelector } from '@/components/SourceSelector';
 import { FileUploader } from '@/components/FileUploader';
@@ -14,8 +14,19 @@ import { SourceHistoryProvider, useSourceHistory } from '@/context/SourceHistory
 import { SourceHistorySidebar } from '@/components/SourceHistorySidebar';
 import { Clock } from 'lucide-react';
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { LoginDialog } from '@/components/LoginDialog';
 
 export type SourceType = 'PDF' | 'Website' | 'Both';
+
+// Helper: User Info Avatar/Menu
+const UserBar: React.FC<{ onLogout: () => void, user: any }> = ({ onLogout, user }) => (
+  <div className="fixed top-4 right-4 z-50 flex items-center bg-white/90 rounded-full shadow-md px-3 py-2 gap-2">
+    <img src={user.avatar_url ?? `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`} alt="avatar" className="w-7 h-7 rounded-full border" />
+    <span className="font-medium text-slate-700 mr-2">{user.email}</span>
+    <button onClick={onLogout} className="text-xs bg-blue-600 hover:bg-blue-800 text-white rounded px-3 py-1">Logout</button>
+  </div>
+);
 
 const MainIndex = () => {
   const [sourceType, setSourceType] = useState<SourceType>('Both');
@@ -242,10 +253,50 @@ const MainIndex = () => {
   );
 };
 
-const Index = () => (
-  <SourceHistoryProvider>
-    <MainIndex />
-  </SourceHistoryProvider>
+const AuthenticatedApp = () => {
+  return <MainIndex />;
+};
+
+const Index = () => {
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  // Use our auth context
+  const { user, loading, signOut } = useAuth();
+
+  // Don't flash the app while loading session:
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl text-blue-700 font-semibold">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!user) {
+    // Not signed in, show login dialog only
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <Button className="px-10 py-4 text-base" onClick={() => setLoginOpen(true)}>
+          Sign in to Continue
+        </Button>
+        <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
+      </div>
+    );
+  }
+
+  // Signed in, show app and user info
+  return (
+    <>
+      <UserBar user={user} onLogout={signOut} />
+      <AuthenticatedApp />
+    </>
+  );
+};
+
+const WrappedIndex = () => (
+  <AuthProvider>
+    <Index />
+  </AuthProvider>
 );
 
-export default Index;
+export default WrappedIndex;
