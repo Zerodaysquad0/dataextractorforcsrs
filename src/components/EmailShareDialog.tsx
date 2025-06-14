@@ -35,11 +35,12 @@ export function EmailShareDialog({
     setLoading(true);
     try {
       const res = await fetch(
-        `${window.location.origin}/functions/v1/send-results-email`,
+        `https://pzrkqxfulzhuxymabdtq.supabase.co/functions/v1/send-results-email`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6cmtxeGZ1bHpodXh5bWFiZHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MTI4MDEsImV4cCI6MjA2NTQ4ODgwMX0.PFYhObU0hajVtpmNCsOR0q15lxfwfocRiN2BdLLK7Xc`,
           },
           body: JSON.stringify({
             to,
@@ -49,6 +50,11 @@ export function EmailShareDialog({
           }),
         }
       );
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
       if (data.success) {
         toast({
@@ -61,6 +67,7 @@ export function EmailShareDialog({
         throw new Error(data.error || "Failed to send email.");
       }
     } catch (e: any) {
+      console.error("Email sending error:", e);
       toast({
         title: "Sending failed",
         description: e.message || "Failed to send the email.",
