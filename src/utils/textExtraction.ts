@@ -1,3 +1,4 @@
+
 import { TOGETHER_API_CONFIG } from '@/config/api';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -116,18 +117,48 @@ export const extractAndFilterContent = async (text: string, header: string, topi
     const end = (i + 1) * TOGETHER_API_CONFIG.MAX_CHUNK_SIZE;
     const part = text.slice(start, end);
 
-    const prompt = `--- ${header} ---
+    // Enhanced prompt for better, more detailed output
+    const prompt = `--- SOURCE: ${header} ---
 
+TEXT TO ANALYZE:
 ${part}
 
-Topic: ${topic}
+EXTRACTION TOPIC: "${topic}"
 
-Extract ONLY content strictly about the topic above. Write a clear paragraph, then bullet insights using '-' (no '*' or other symbols).`;
+INSTRUCTIONS:
+You are an expert content analyst. Your task is to extract and present information that is DIRECTLY relevant to the topic "${topic}".
+
+REQUIREMENTS:
+1. ONLY extract content that specifically relates to "${topic}"
+2. Provide detailed explanations, not just brief mentions
+3. Include relevant context, examples, and specifics
+4. Structure your response with clear sections
+5. Use professional, comprehensive language
+6. Include quantitative data, statistics, or metrics when available
+7. Explain relationships, causes, effects, and implications
+8. Provide actionable insights where applicable
+
+OUTPUT FORMAT:
+- Start with a brief overview paragraph
+- Use bullet points with detailed explanations (use '-' symbol)
+- Include specific examples, case studies, or scenarios
+- Add relevant quotes or key statements
+- Conclude with practical insights or implications
+
+If no relevant content is found, respond with: "No specific information about '${topic}' found in this section."`;
 
     const result = await callTogetherAI(prompt);
-    const label = chunks === 1 ? header : `${header} (part ${i + 1}/${chunks})`;
-    pieces.push(`**${label}**\n\n${result}`);
+    
+    // Only include meaningful results
+    if (!result.includes("No specific information") && result.length > 50) {
+      const label = chunks === 1 ? header : `${header} (Section ${i + 1}/${chunks})`;
+      pieces.push(`**${label}**\n\n${result}`);
+    }
   }
 
-  return pieces.join('\n\n');
+  if (pieces.length === 0) {
+    return `**${header}**\n\nNo detailed information specifically about "${topic}" was found in this source. The content may not contain relevant material or may require a different search approach.`;
+  }
+
+  return pieces.join('\n\n---\n\n');
 };
