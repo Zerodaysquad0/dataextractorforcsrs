@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Search, Sparkles, Copy, ExternalLink, Download, TrendingUp } from 'lucide-react';
+import { Brain, Search, Sparkles, Copy, TrendingUp, Zap, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/context/LanguageContext';
 import { ResearchResults } from './ResearchResults';
@@ -93,11 +93,20 @@ export const AIResearch = () => {
     }
   };
 
+  const sampleQuestions = [
+    "How many new startups have launched in India in 2025 so far?",
+    "Give CSR spending trends for Tata Steel in the last 3 years",
+    "What are the top 5 AI companies working in education sector?",
+    "Latest funding rounds in fintech sector this month",
+    "Corporate social responsibility trends in Indian tech companies",
+    "Government initiatives for startup ecosystem in 2025"
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header Section */}
       <Card className="p-6 bg-[#1A1A1A] border border-gray-800 shadow-xl">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-6">
           <div className="relative">
             <Brain className="w-8 h-8 text-[#8A33FF]" />
             <Sparkles className="w-4 h-4 text-[#00BFA6] absolute -top-1 -right-1 animate-pulse" />
@@ -118,7 +127,7 @@ export const AIResearch = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ask me anything... e.g., 'How many new startups launched in India in 2025?' or 'What are CSR spending trends for Tata Steel?'"
-              className="min-h-[100px] bg-[#0F0F0F] border-gray-700 text-white placeholder:text-gray-500 resize-none rounded-xl"
+              className="min-h-[120px] bg-[#0F0F0F] border-gray-700 text-white placeholder:text-gray-500 resize-none rounded-xl pr-12"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                   handleResearch();
@@ -139,21 +148,26 @@ export const AIResearch = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
+          {/* Features and Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="text-[#00BFA6] border-[#00BFA6]/30 bg-[#00BFA6]/10">
                 <Search className="w-3 h-3 mr-1" />
-                Web Search
+                Web Research
               </Badge>
               <Badge variant="outline" className="text-[#8A33FF] border-[#8A33FF]/30 bg-[#8A33FF]/10">
                 <TrendingUp className="w-3 h-3 mr-1" />
                 Data Analysis
               </Badge>
+              <Badge variant="outline" className="text-orange-400 border-orange-400/30 bg-orange-400/10">
+                <Target className="w-3 h-3 mr-1" />
+                Citations
+              </Badge>
             </div>
             <Button
               onClick={handleResearch}
               disabled={isLoading || !query.trim()}
-              className="bg-gradient-to-r from-[#8A33FF] to-[#00BFA6] hover:from-[#7A2FE6] hover:to-[#00A693] text-white px-6 rounded-full"
+              className="bg-gradient-to-r from-[#8A33FF] to-[#00BFA6] hover:from-[#7A2FE6] hover:to-[#00A693] text-white px-6 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               {isLoading ? (
                 <>
@@ -162,17 +176,18 @@ export const AIResearch = () => {
                 </>
               ) : (
                 <>
-                  <Brain className="w-4 h-4 mr-2" />
+                  <Zap className="w-4 h-4 mr-2" />
                   Research
                 </>
               )}
             </Button>
           </div>
 
+          {/* Loading Status */}
           {isLoading && status && (
-            <div className="flex items-center gap-2 text-sm text-gray-400 bg-[#0F0F0F] rounded-lg p-3">
-              <div className="w-4 h-4 border-2 border-[#8A33FF]/30 border-t-[#8A33FF] rounded-full animate-spin" />
-              {status}
+            <div className="flex items-center gap-3 text-sm text-gray-400 bg-[#0F0F0F] rounded-lg p-4 border border-gray-700">
+              <div className="w-4 h-4 border-2 border-[#8A33FF]/30 border-t-[#8A33FF] rounded-full animate-spin flex-shrink-0" />
+              <span>{status}</span>
             </div>
           )}
         </div>
@@ -192,23 +207,28 @@ export const AIResearch = () => {
       {/* Sample Questions */}
       {!results && !isLoading && (
         <Card className="p-6 bg-[#1A1A1A] border border-gray-800">
-          <h3 className="text-lg font-semibold text-white mb-4">Sample Research Questions</h3>
-          <div className="grid gap-3">
-            {[
-              "How many new startups have launched in India in 2025 so far?",
-              "Give CSR spending trends for Tata Steel in the last 3 years",
-              "What are the top 5 AI companies working in education sector?",
-              "Latest funding rounds in fintech sector this month"
-            ].map((sample, index) => (
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#00BFA6]" />
+            Sample Research Questions
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
+            {sampleQuestions.map((sample, index) => (
               <button
                 key={index}
                 onClick={() => setQuery(sample)}
-                className="text-left p-3 rounded-lg bg-[#0F0F0F] hover:bg-gray-800 transition-colors text-gray-300 hover:text-white border border-gray-700 hover:border-[#8A33FF]/30"
+                className="text-left p-4 rounded-lg bg-[#0F0F0F] hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-white border border-gray-700 hover:border-[#8A33FF]/30 group"
               >
-                <span className="text-[#8A33FF] mr-2">→</span>
+                <span className="text-[#8A33FF] mr-2 group-hover:text-[#00BFA6] transition-colors">→</span>
                 {sample}
               </button>
             ))}
+          </div>
+          
+          <div className="mt-4 p-3 rounded-lg bg-[#8A33FF]/10 border border-[#8A33FF]/20">
+            <p className="text-sm text-gray-400">
+              <span className="text-[#8A33FF] font-medium">Pro Tip:</span> Be specific in your questions for better results. 
+              Use Ctrl+Enter to submit quickly.
+            </p>
           </div>
         </Card>
       )}

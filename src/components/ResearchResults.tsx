@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Copy, ExternalLink, Download, RefreshCw, TrendingUp, Table as TableIcon, BarChart3 } from 'lucide-react';
+import { Copy, ExternalLink, Download, RefreshCw, TrendingUp, Table as TableIcon, BarChart3, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { downloadAsWord } from '@/utils/downloadWord';
 import type { ResearchResult } from './AIResearch';
 
 interface ResearchResultsProps {
@@ -62,6 +63,49 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
     });
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      // Format content for Word document
+      let wordContent = `${results.summary}\n\n`;
+      
+      // Add table data if available
+      if (results.tableData) {
+        wordContent += "DATA TABLE:\n";
+        const headers = Object.keys(results.tableData[0]);
+        wordContent += headers.join(' | ') + '\n';
+        wordContent += headers.map(() => '---').join(' | ') + '\n';
+        results.tableData.forEach(row => {
+          wordContent += headers.map(header => row[header] || '').join(' | ') + '\n';
+        });
+        wordContent += '\n';
+      }
+
+      // Add sources
+      wordContent += "SOURCES:\n";
+      results.sources.forEach((source, index) => {
+        wordContent += `→ ${index + 1}. ${source.title}\n   ${source.url}\n   ${source.snippet}\n\n`;
+      });
+
+      await downloadAsWord(
+        wordContent,
+        `ai-research-report-${Date.now()}.docx`,
+        results.headline,
+        results.query
+      );
+
+      toast({
+        title: "Report Downloaded",
+        description: "Research report saved as Word document",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed", 
+        description: "Unable to generate Word document",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderChart = () => {
     if (!results.chartData) return null;
 
@@ -77,8 +121,15 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
           <ResponsiveContainer {...commonProps}>
             <BarChart data={results.chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="name" stroke="#888" />
-              <YAxis stroke="#888" />
+              <XAxis 
+                dataKey="name" 
+                stroke="#888" 
+                fontSize={12}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis stroke="#888" fontSize={12} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: '#1A1A1A', 
@@ -100,8 +151,8 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
           <ResponsiveContainer {...commonProps}>
             <LineChart data={results.chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="name" stroke="#888" />
-              <YAxis stroke="#888" />
+              <XAxis dataKey="name" stroke="#888" fontSize={12} />
+              <YAxis stroke="#888" fontSize={12} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: '#1A1A1A', 
@@ -117,7 +168,7 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
                   type="monotone" 
                   dataKey={key} 
                   stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                  strokeWidth={2}
+                  strokeWidth={3}
                 />
               ))}
             </LineChart>
@@ -163,14 +214,19 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
       {/* Main Insight Card */}
       <Card className="bg-[#1A1A1A] border border-gray-800 shadow-xl">
         <CardHeader className="pb-4">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex-1">
-              <CardTitle className="text-xl font-bold text-white mb-2">{results.headline}</CardTitle>
-              <Badge variant="secondary" className="bg-[#00BFA6]/20 text-[#00BFA6] border-[#00BFA6]/30 text-xs">
-                Research Complete
-              </Badge>
+              <CardTitle className="text-xl font-bold text-white mb-2 leading-tight">{results.headline}</CardTitle>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary" className="bg-[#00BFA6]/20 text-[#00BFA6] border-[#00BFA6]/30 text-xs">
+                  Research Complete
+                </Badge>
+                <Badge variant="outline" className="text-[#8A33FF] border-[#8A33FF]/30 text-xs">
+                  {new Date(results.timestamp).toLocaleDateString()}
+                </Badge>
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="ghost"
                 size="sm"
@@ -178,6 +234,14 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
                 className="hover:bg-gray-800 text-gray-400 hover:text-white"
               >
                 <Copy className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownloadReport}
+                className="hover:bg-gray-800 text-gray-400 hover:text-white"
+              >
+                <FileText className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -235,8 +299,8 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
                     <TableHeader>
                       <TableRow className="border-gray-700">
                         {Object.keys(results.tableData[0] || {}).map((header) => (
-                          <TableHead key={header} className="text-gray-300 font-semibold">
-                            {header}
+                          <TableHead key={header} className="text-gray-300 font-semibold whitespace-nowrap">
+                            {header.replace(/_/g, ' ')}
                           </TableHead>
                         ))}
                       </TableRow>
@@ -245,7 +309,7 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
                       {results.tableData.slice(0, expandedTable ? undefined : 5).map((row, index) => (
                         <TableRow key={index} className="border-gray-700 hover:bg-gray-800/50">
                           {Object.values(row).map((cell, cellIndex) => (
-                            <TableCell key={cellIndex} className="text-gray-300">
+                            <TableCell key={cellIndex} className="text-gray-300 whitespace-nowrap">
                               {String(cell)}
                             </TableCell>
                           ))}
@@ -278,7 +342,9 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
                 </div>
               </CardHeader>
               <CardContent>
-                {renderChart()}
+                <div className="w-full overflow-hidden">
+                  {renderChart()}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -299,7 +365,7 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-white truncate">{source.title}</h4>
-                  <p className="text-sm text-gray-400 mt-1">{source.snippet}</p>
+                  <p className="text-sm text-gray-400 mt-1 line-clamp-2">{source.snippet}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="outline" className="text-xs text-[#00BFA6] border-[#00BFA6]/30">
                       Verified Source
@@ -310,7 +376,7 @@ export const ResearchResults = ({ results, onNewResearch }: ResearchResultsProps
                   variant="ghost"
                   size="sm"
                   asChild
-                  className="hover:bg-gray-800 text-gray-400 hover:text-white"
+                  className="hover:bg-gray-800 text-gray-400 hover:text-white flex-shrink-0"
                 >
                   <a href={source.url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4" />
