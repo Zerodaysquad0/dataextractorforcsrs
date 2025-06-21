@@ -20,6 +20,7 @@ const Index = () => {
     progress,
     images,
     handleExtract,
+    structuredData,
   } = useExtraction();
 
   const onExtract = () => {
@@ -116,6 +117,8 @@ const Index = () => {
                     isLoading={isLoading}
                     topic={topic}
                     images={images}
+                    structuredData={structuredData}
+                    source={selectedFiles.length > 0 ? selectedFiles[0].name : urls.split('\n')[0]}
                   />
                 </div>
               </div>

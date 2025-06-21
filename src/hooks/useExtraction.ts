@@ -10,6 +10,7 @@ export const useExtraction = () => {
   const [status, setStatus] = useState('Ready to extract data content');
   const [progress, setProgress] = useState(0);
   const [images, setImages] = useState<string[]>([]);
+  const [structuredData, setStructuredData] = useState<Array<Record<string, any>>>([]); // Add this
   const { toast } = useToast();
 
   const handleExtract = async (
@@ -64,6 +65,7 @@ export const useExtraction = () => {
     setResults('');
     setProgress(0);
     setImages([]);
+    setStructuredData([]); // Reset structured data
 
     try {
       const result = await performExtraction({
@@ -80,6 +82,8 @@ export const useExtraction = () => {
       if (result.success) {
         let resultsText = result.content;
         setImages(result.images || []);
+        setStructuredData(result.structuredData || []); // Set structured data
+        
         if (result.images && result.images.length > 0) {
           resultsText += `\n\nExtracted Images:\n`;
           result.images.forEach((imgUrl, idx) => {
@@ -120,6 +124,7 @@ export const useExtraction = () => {
     status,
     progress,
     images,
+    structuredData, // Add this to return
     handleExtract,
   };
 };
