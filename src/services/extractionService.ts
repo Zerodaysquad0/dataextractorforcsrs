@@ -1,4 +1,5 @@
 import { extractTextFromPDF, extractTextFromWebsite, extractAndFilterContent, WebsiteExtractionResult } from '@/utils/textExtraction';
+import { callTogetherAI } from '@/utils/aiService';
 
 export interface ExtractionParams {
   sourceType: 'PDF' | 'Website' | 'Both';
