@@ -3,6 +3,7 @@ import { FileText, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { FeatureReportButton } from "@/components/FeatureReportButton";
+import { CodeDocumentGenerator } from "@/components/CodeDocumentGenerator";
 
 export const Header = () => {
   const { t } = useLanguage();
@@ -10,7 +11,7 @@ export const Header = () => {
   return (
     <div className="text-center animate-fade-in">
       <div className="flex justify-end mb-4 gap-2">
-        {/* Management Feature Report Button */}
+        <CodeDocumentGenerator />
         <FeatureReportButton />
         <LanguageSelector />
       </div>
