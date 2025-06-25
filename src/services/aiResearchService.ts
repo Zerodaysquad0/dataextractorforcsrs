@@ -1,5 +1,5 @@
 
-import { TOGETHER_API_CONFIG } from '@/config/api';
+import { AI_API_CONFIG } from '@/config/api';
 import type { ResearchResult } from '@/components/AIResearch';
 
 export interface AIResearchParams {
@@ -95,18 +95,18 @@ const simulateWebSearch = async (query: string): Promise<Array<{title: string; u
   }
 };
 
-const callTogetherAIForResearch = async (prompt: string): Promise<string> => {
+const callLlamaAIForResearch = async (prompt: string): Promise<string> => {
   try {
-    const response = await fetch(TOGETHER_API_CONFIG.BASE_URL + '/chat/completions', {
+    const response = await fetch(AI_API_CONFIG.BASE_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${TOGETHER_API_CONFIG.API_KEY}`,
+        'Authorization': `Bearer ${AI_API_CONFIG.LLAMA_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: TOGETHER_API_CONFIG.MODEL,
+        model: AI_API_CONFIG.MODEL,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
+        temperature: AI_API_CONFIG.TEMPERATURE,
         max_tokens: 2500,
       }),
     });
@@ -118,7 +118,7 @@ const callTogetherAIForResearch = async (prompt: string): Promise<string> => {
     const data = await response.json();
     return data.choices[0].message.content.trim();
   } catch (error) {
-    console.error('Together.ai API Error:', error);
+    console.error('Llama AI API Error:', error);
     throw error;
   }
 };
@@ -315,7 +315,7 @@ IMPORTANT FORMATTING RULES:
 
 Provide factual, well-structured analysis that directly addresses the research question: "${query}"`;
 
-    const analysisResult = await callTogetherAIForResearch(analysisPrompt);
+    const analysisResult = await callLlamaAIForResearch(analysisPrompt);
     
     onProgress?.(70, '📊 Generating contextual data visualizations...');
     
