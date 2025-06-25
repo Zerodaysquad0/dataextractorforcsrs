@@ -30,6 +30,9 @@ export const Header = () => {
       <div className="mt-4 text-sm text-slate-500 font-medium">
         {t('header.createdBy')} <span className="text-blue-600 font-semibold">Rahul Sah</span>
       </div>
+      <div className="mt-2 text-xs text-slate-400 bg-gradient-to-r from-blue-50 to-purple-50 px-3 py-1 rounded-full inline-block">
+        Powered by <span className="font-semibold text-purple-600">Llama 3 AI</span>
+      </div>
       <div className="mt-6 flex items-center justify-center gap-2">
         <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
         <div className="h-1 w-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>

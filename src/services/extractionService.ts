@@ -1,5 +1,6 @@
+
 import { extractTextFromPDF, extractTextFromWebsite, extractAndFilterContent, WebsiteExtractionResult } from '@/utils/textExtraction';
-import { callTogetherAI } from '@/utils/aiService';
+import { callLlamaAI } from '@/utils/aiService';
 
 export interface ExtractionParams {
   sourceType: 'PDF' | 'Website' | 'Both';
@@ -36,42 +37,42 @@ export const performExtraction = async (params: ExtractionParams): Promise<Extra
 
     let completed = 0;
 
-    onProgress?.(0, `🔍 Starting detailed extraction for: "${topic}"`);
+    onProgress?.(0, `🔍 Starting Llama 3 analysis for: "${topic}"`);
 
-    // Parallel PDF processing with enhanced status updates
+    // Parallel PDF processing with Llama 3
     if ((sourceType === 'PDF' || sourceType === 'Both') && files.length > 0) {
       for (const file of files) {
         const pdfPromise = (async () => {
-          onProgress?.(Math.round((completed / totalTasks) * 100), `📄 Analyzing ${file.name} for "${topic}"`);
+          onProgress?.(Math.round((completed / totalTasks) * 100), `📄 Extracting data from ${file.name}`);
           const rawText = await extractTextFromPDF(file);
-          const header = `PDF Document: ${file.name}`;
+          const header = `PDF: ${file.name}`;
           const processedContent = await extractAndFilterContent(rawText, header, topic);
           completed++;
-          onProgress?.(Math.round((completed / totalTasks) * 100), `✅ Extracted insights from ${file.name}`);
+          onProgress?.(Math.round((completed / totalTasks) * 100), `✅ Data extracted from ${file.name}`);
           return processedContent;
         })();
         pdfTasks.push(pdfPromise);
       }
     }
 
-    // Parallel Website processing with enhanced status updates
+    // Parallel Website processing with Llama 3
     if ((sourceType === 'Website' || sourceType === 'Both') && urls.length > 0) {
       for (const url of urls) {
         if (!url.trim()) continue;
         const webPromise = (async () => {
-          onProgress?.(Math.round((completed / totalTasks) * 100), `🌐 Analyzing ${url} for "${topic}"`);
+          onProgress?.(Math.round((completed / totalTasks) * 100), `🌐 Extracting data from ${url}`);
           const websiteResult: WebsiteExtractionResult = await extractTextFromWebsite(url);
           const header = `Website: ${url}`;
           const processedContent = await extractAndFilterContent(websiteResult.text, header, topic);
           completed++;
-          onProgress?.(Math.round((completed / totalTasks) * 100), `✅ Extracted insights from ${url}`);
+          onProgress?.(Math.round((completed / totalTasks) * 100), `✅ Data extracted from ${url}`);
           return { content: processedContent, images: websiteResult.images || [] };
         })();
         websiteTasks.push(webPromise);
       }
     }
 
-    onProgress?.(50, '🧠 Processing content with AI analysis...');
+    onProgress?.(50, '🧠 Processing with Llama 3 AI...');
 
     // Await all processing in parallel
     const [pdfResults, websiteResults] = await Promise.all([
@@ -86,40 +87,40 @@ export const performExtraction = async (params: ExtractionParams): Promise<Extra
       allImages = websiteResults.reduce((arr, r) => arr.concat(r.images), [] as string[]);
     }
 
-    // Filter out empty or non-informative results
+    // Filter meaningful results
     const meaningfulResults = results.filter(result => 
-      result.length > 100 && 
-      !result.includes('No detailed information') &&
-      !result.includes('No specific information')
+      result.length > 50 && 
+      !result.includes('No specific data') &&
+      !result.includes('No data found')
     );
 
     if (meaningfulResults.length === 0) {
       return {
         success: true,
-        content: `**Extraction Results for "${topic}"**\n\nNo detailed information specifically about "${topic}" was found in the provided sources. Consider:\n\n- Refining your topic to be more specific\n- Using different search terms\n- Checking if the sources contain relevant content\n- Trying alternative sources that might have more focused information`,
+        content: `**Data Extraction for "${topic}"**\n\nNo specific data about "${topic}" found in the provided sources.\n\n**Suggestions:**\n• Try more specific keywords\n• Check if sources contain relevant information\n• Use different file formats or sources`,
         images: allImages,
-        summary: 'No relevant content found',
+        summary: 'No relevant data found',
         structuredData: []
       };
     }
 
-    // Generate structured data from the extracted content
-    onProgress?.(80, '📊 Generating structured data tables...');
+    // Generate structured data using Llama 3
+    onProgress?.(80, '📊 Creating structured data tables...');
     const structuredData = await generateStructuredData(meaningfulResults.join('\n\n'), topic);
 
-    // Create a comprehensive final output
-    const finalContent = `# Comprehensive Analysis: "${topic}"\n\n` +
-      `**Summary:** Found ${meaningfulResults.length} relevant source(s) with detailed information about "${topic}"\n\n` +
-      `---\n\n${meaningfulResults.join('\n\n---\n\n')}\n\n` +
-      `---\n\n**Analysis Complete** | Sources: ${meaningfulResults.length} | Images: ${allImages.length}`;
+    // Create focused data output
+    const finalContent = `# Data Analysis: "${topic}"\n\n` +
+      `**Found:** ${meaningfulResults.length} source(s) with data about "${topic}"\n\n` +
+      `${meaningfulResults.join('\n\n---\n\n')}\n\n` +
+      `**Extraction Complete** | Sources: ${meaningfulResults.length} | Images: ${allImages.length} | Powered by Llama 3`;
 
-    onProgress?.(100, '🎯 Analysis complete! Generated comprehensive insights.');
+    onProgress?.(100, '🎯 Data extraction complete!');
 
     return {
       success: true,
       content: finalContent,
       images: allImages,
-      summary: `Generated comprehensive analysis from ${meaningfulResults.length} sources`,
+      summary: `Extracted data from ${meaningfulResults.length} sources using Llama 3`,
       structuredData
     };
   } catch (error) {
@@ -133,46 +134,35 @@ export const performExtraction = async (params: ExtractionParams): Promise<Extra
   }
 };
 
-// New function to generate structured data
+// Generate structured data using Llama 3
 const generateStructuredData = async (content: string, topic: string): Promise<Array<Record<string, any>>> => {
   try {
-    const prompt = `Analyze the following content and extract structured data relevant to "${topic}".
+    const prompt = `Extract structured data about "${topic}" from this content:
 
-CONTENT TO ANALYZE:
 ${content}
 
-INSTRUCTIONS:
-1. Extract key information and structure it into a table format
-2. Create appropriate column headers based on the content
-3. Generate 3-8 rows of data (real extracted information, not generic examples)
-4. Focus on quantitative data, names, dates, locations, amounts, etc.
-5. If this is about CSR/companies, include fields like: Company Name, Location, Fiscal Year, Budget, Beneficiaries, Projects, etc.
-6. If this is about research/studies, include: Study Name, Year, Sample Size, Key Findings, etc.
-7. Return ONLY a JSON array of objects, each representing a table row
+REQUIREMENTS:
+1. Return ONLY a JSON array
+2. Each object should be a table row
+3. Include 3-8 data rows maximum
+4. Use consistent column names
+5. Focus on quantitative data (numbers, dates, amounts)
+6. Include relevant fields like: names, locations, years, amounts, metrics
 
-Example format:
-[
-  {
-    "Company Name": "Example Corp",
-    "Location": "Mumbai",
-    "Fiscal Year": "2023-24",
-    "CSR Budget": "₹50 Cr",
-    "Focus Area": "Education"
-  }
-]
+Example for CSR data:
+[{"Company":"ABC Ltd","Year":"2023","Budget":"₹50Cr","Focus":"Education"}]
 
-Return structured data as JSON array:`;
+Return only the JSON array:`;
 
-    const result = await callTogetherAI(prompt);
+    const result = await callLlamaAI(prompt);
     
-    // Try to parse JSON from the result
+    // Extract JSON from response
     const jsonMatch = result.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsedData = JSON.parse(jsonMatch[0]);
       return Array.isArray(parsedData) ? parsedData : [];
     }
     
-    // Fallback: create basic structured data from content analysis
     return createFallbackStructuredData(content, topic);
     
   } catch (error) {
@@ -182,11 +172,10 @@ Return structured data as JSON array:`;
 };
 
 const createFallbackStructuredData = (content: string, topic: string): Array<Record<string, any>> => {
-  // Basic extraction based on content patterns
   const lines = content.split('\n').filter(line => line.trim().length > 10);
   const data: Array<Record<string, any>> = [];
   
-  // Look for company mentions, amounts, years, etc.
+  // Extract patterns from content
   const companyPattern = /([A-Z][a-zA-Z\s&]+(?:Ltd|Inc|Corp|Company|Industries|Group))/g;
   const amountPattern = /₹[\d,.]+ (?:crore|lakh|Cr|L)/gi;
   const yearPattern = /20\d{2}-?\d{0,2}/g;
@@ -199,10 +188,10 @@ const createFallbackStructuredData = (content: string, topic: string): Array<Rec
     data.push({
       'S.No': i + 1,
       'Entity': companies[i] || `Item ${i + 1}`,
-      'Amount/Value': amounts[i] || 'Not specified',
-      'Year/Period': years[i] || 'Recent',
+      'Amount': amounts[i] || 'Not specified',
+      'Year': years[i] || 'Recent',
       'Topic': topic,
-      'Source': 'Extracted Content'
+      'Source': 'Llama 3 Analysis'
     });
   }
   
@@ -210,9 +199,9 @@ const createFallbackStructuredData = (content: string, topic: string): Array<Rec
     {
       'S.No': 1,
       'Topic': topic,
-      'Status': 'Data extracted successfully',
-      'Content Length': `${content.length} characters`,
-      'Generated On': new Date().toLocaleDateString()
+      'Status': 'Processed with Llama 3',
+      'Content Size': `${content.length} characters`,
+      'Date': new Date().toLocaleDateString()
     }
   ];
 };
