@@ -5,7 +5,10 @@ import { AI_API_CONFIG } from '@/config/api';
 export const callLlamaAI = async (prompt: string, retryCount = 0): Promise<string> => {
   const configs = [
     { url: AI_API_CONFIG.BASE_URL, model: AI_API_CONFIG.MODEL },
-    ...AI_API_CONFIG.FALLBACK_CONFIGS
+    ...AI_API_CONFIG.FALLBACK_CONFIGS.map(config => ({
+      url: config.BASE_URL,
+      model: config.MODEL
+    }))
   ];
   
   for (let configIndex = 0; configIndex < configs.length; configIndex++) {
@@ -13,20 +16,20 @@ export const callLlamaAI = async (prompt: string, retryCount = 0): Promise<strin
     
     try {
       console.log(`Attempting API call with config ${configIndex + 1}:`, {
-        url: config.BASE_URL || config.url,
-        model: config.MODEL || config.model,
+        url: config.url,
+        model: config.model,
         promptLength: prompt.length,
         retry: retryCount
       });
       
-      const response = await fetch(config.BASE_URL || config.url, {
+      const response = await fetch(config.url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${AI_API_CONFIG.LLAMA_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: config.MODEL || config.model,
+          model: config.model,
           messages: [
             { 
               role: 'system', 
