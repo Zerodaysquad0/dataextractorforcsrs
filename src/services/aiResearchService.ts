@@ -1,6 +1,6 @@
 
-import { AI_API_CONFIG } from '@/config/api';
 import type { ResearchResult } from '@/components/AIResearch';
+import { callLlamaAI } from '@/utils/aiService';
 
 export interface AIResearchParams {
   query: string;
@@ -92,34 +92,6 @@ const simulateWebSearch = async (query: string): Promise<Array<{title: string; u
         snippet: "Professional market research and business intelligence reports with verified data and analysis."
       }
     ];
-  }
-};
-
-const callLlamaAIForResearch = async (prompt: string): Promise<string> => {
-  try {
-    const response = await fetch(AI_API_CONFIG.BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${AI_API_CONFIG.LLAMA_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: AI_API_CONFIG.MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: AI_API_CONFIG.TEMPERATURE,
-        max_tokens: 2500,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
-  } catch (error) {
-    console.error('Llama AI API Error:', error);
-    throw error;
   }
 };
 
@@ -315,7 +287,7 @@ IMPORTANT FORMATTING RULES:
 
 Provide factual, well-structured analysis that directly addresses the research question: "${query}"`;
 
-    const analysisResult = await callLlamaAIForResearch(analysisPrompt);
+    const analysisResult = await callLlamaAI(analysisPrompt);
     
     onProgress?.(70, '📊 Generating contextual data visualizations...');
     
